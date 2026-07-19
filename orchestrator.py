@@ -21,6 +21,8 @@ from agents.static_analyzer import StaticAnalyzer
 from core.cve_client import CVEClient
 from core.llm_client import LLMClient
 from core.memory import MemoryLayer
+from core.taint_analyzer import TaintAnalyzer
+from core.dependency_scanner import scan_project_dependencies
 from core.models import (
     AnalysisRequest,
     AnalysisResult,
@@ -53,6 +55,7 @@ class Orchestrator:
         self.semantic_analyzer = SemanticAnalyzer(llm_client) if llm_client else None
         self.memory = MemoryLayer()
         self.cve = CVEClient()
+        self.taint = TaintAnalyzer()
         self.verifier = DeepVerifier(
             llm_client=llm_client,
             memory=self.memory,
@@ -97,6 +100,42 @@ class Orchestrator:
             else:
                 console.print(f"  [green]  {f.path}: clean[/]")
 
+        # Phase 1.5: Dependency scanning
+        console.print("\n[bold]  Phase 1.5: Dependency scanning[/]")
+        try:
+            from pathlib import Path
+            # Scan parent directory of first file for project root
+            project_root = Path(valid_files[0].path).parent
+            dep_findings = scan_project_dependencies(project_root)
+            if dep_findings:
+                console.print(f"  [red]  Dependencies: {len(dep_findings)} vulnerable packages[/]")
+                for finding in dep_findings:
+                    from core.models import Confidence, Evidence, Language, Risk, Severity
+                    all_risks.append(Risk(
+                        id=f"RISK-{len(all_risks)+1:03d}",
+                        title=f"Vulnerable dep: {finding['package']} {finding['version']}",
+                        description=finding['description'],
+                        severity=Severity.HIGH,
+                        confidence=Confidence.HIGH,
+                        cwe_id=finding['cwe'],
+                        language=Language.UNKNOWN,
+                        file_path=Path(finding.get('file', 'requirements.txt')),
+                        line_start=0,
+                        line_end=0,
+                        evidence=[Evidence(
+                            source="dependency_scan",
+                            snippet=f"{finding['package']}=={finding['version']}",
+                            line_start=0,
+                            line_end=0,
+                            reasoning=finding['description'],
+                        )],
+                        suggestion=finding['fix'],
+                    ))
+            else:
+                console.print("  [green]  Dependencies: clean[/]")
+        except Exception as e:
+            console.print(f"[dim]  Dependency scan skipped: {e}[/]")
+
         # Phase 2: Semgrep
         console.print("\n[bold]  Phase 2: Semgrep analysis[/]")
         try:
@@ -110,6 +149,46 @@ class Orchestrator:
                     all_risks.extend(semgrep_risks)
         except Exception as e:
             console.print(f"[dim]  Semgrep skipped: {e}[/]")
+
+        # Phase 2.5: Taint analysis (data flow tracking)
+        console.print("\n[bold]  Phase 2.5: Taint analysis (data flow)[/]")
+        for f in valid_files:
+            try:
+                if f.language.value == "c":
+                    flows = self.taint.analyze_c(f.content, str(f.path))
+                elif f.language.value == "python":
+                    flows = self.taint.analyze_python(f.content, str(f.path))
+                else:
+                    flows = []
+                if flows:
+                    console.print(f"  [red]  Taint {f.path}: {len(flows)} data flows[/]")
+                    for flow in flows:
+                        from core.models import Confidence, Evidence, Language, Risk, Severity
+                        sev = Severity(flow.severity) if flow.severity in [s.value for s in Severity] else Severity.MEDIUM
+                        all_risks.append(Risk(
+                            id=f"RISK-{len(all_risks)+1:03d}",
+                            title=f"Taint: {flow.description[:60]}",
+                            description=flow.description,
+                            severity=sev,
+                            confidence=Confidence.HIGH if flow.confidence == "high" else Confidence.MEDIUM,
+                            cwe_id=flow.cwe_id,
+                            language=f.language,
+                            file_path=f.path,
+                            line_start=flow.sink_line,
+                            line_end=flow.sink_line,
+                            evidence=[Evidence(
+                                source="taint_analysis",
+                                snippet=f"{flow.source} -> {flow.sink}",
+                                line_start=flow.source_line,
+                                line_end=flow.sink_line,
+                                reasoning=f"Data flow: {flow.source} (line {flow.source_line}) -> {flow.sink} (line {flow.sink_line})",
+                            )],
+                            suggestion=flow.suggestion,
+                        ))
+                else:
+                    console.print(f"  [green]  Taint {f.path}: clean[/]")
+            except Exception as e:
+                console.print(f"[dim]  Taint analysis skipped for {f.path}: {e}[/]")
 
         # Phase 3: LLM semantic analysis
         if request.enable_ai and self.semantic_analyzer:
