@@ -79,10 +79,27 @@ class LLMClient:
         if not self.config.model_path:
             raise ValueError("LOCAL_LLAMA_CPP requires model_path in config")
 
+        # Detect GPU availability
+        gpu_layers = self.config.n_gpu_layers
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["rocm-smi", "--showmeminfo", "vram"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if "N/A" in result.stdout or result.returncode != 0:
+                console.print("[yellow]GPU not detected, falling back to CPU inference[/]")
+                gpu_layers = 0
+            else:
+                console.print("[green]AMD GPU detected, offloading layers[/]")
+        except Exception:
+            console.print("[yellow]rocm-smi not found, falling back to CPU inference[/]")
+            gpu_layers = 0
+
         console.print(f"[dim]Loading local model: {self.config.model_path}[/]")
         self._local_llm = Llama(
             model_path=self.config.model_path,
-            n_gpu_layers=self.config.n_gpu_layers,
+            n_gpu_layers=gpu_layers,
             verbose=False,
             n_ctx=4096,
         )
@@ -167,14 +184,12 @@ class LLMClient:
         """llama-cpp-python direct inference."""
         prompt = self._messages_to_prompt(messages)
 
-        stop_tokens = ["<|endofassistant|>", "</s>"]
-
         start = time.monotonic()
         result = self._local_llm(
             prompt,
             max_tokens=max_tokens,
             temperature=temperature,
-            stop=stop_tokens,
+            stop="<|endofassistant|>",
         )
         elapsed_ms = int((time.monotonic() - start) * 1000)
         self._request_count += 1
@@ -197,7 +212,7 @@ class LLMClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> dict:
-        """Send chat request, parse JSON from response (robust extraction)."""
+        """Send chat request, parse JSON from response."""
         raw = self.chat(messages, temperature, max_tokens)
         return _extract_json(raw)
 
@@ -212,18 +227,13 @@ class LLMClient:
 
     @staticmethod
     def _messages_to_prompt(messages: list[dict[str, str]]) -> str:
-        """Convert OpenAI-style messages to a single prompt string for llama-cpp."""
+        """Convert OpenAI-style messages to Qwen2.5 ChatML format."""
         parts = []
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            if role == "system":
-                parts.append(f"<|system|>\n{content}")
-            elif role == "user":
-                parts.append(f"<|user|>\n{content}")
-            elif role == "assistant":
-                parts.append(f"<|assistant|>\n{content}")
-        parts.append("<|assistant|>")
+            parts.append(f"<imstart>{role}\n{content}</im>")
+        parts.append(f"<imstart>assistant\n")
         return "\n".join(parts)
 
     def close(self):
@@ -239,13 +249,11 @@ class LLMClient:
 
 def _extract_json(text: str) -> dict:
     """Extract JSON from LLM response with multiple fallback strategies."""
-    # Strategy 1: direct parse
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
 
-    # Strategy 2: extract from ```json ... ``` block
     if "```json" in text:
         start = text.index("```json") + 7
         end = text.index("```", start)
@@ -254,7 +262,6 @@ def _extract_json(text: str) -> dict:
         except json.JSONDecodeError:
             pass
 
-    # Strategy 3: find first { ... } block
     depth = 0
     start = -1
     for i, ch in enumerate(text):
@@ -271,3 +278,4 @@ def _extract_json(text: str) -> dict:
                     start = -1
 
     raise ValueError(f"Failed to extract JSON from LLM response:\n{text[:300]}...")
+

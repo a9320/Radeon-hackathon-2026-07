@@ -102,11 +102,10 @@ def cmd_analyze(
                 semantic = SemanticAnalyzer(llm)
                 for f in files:
                     file_risks = [r for r in all_risks if r.file_path == f.path]
-                    if file_risks:
-                        enriched = semantic.analyze(f, file_risks)
-                        # Replace risks for this file
-                        all_risks = [r for r in all_risks if r.file_path != f.path]
-                        all_risks.extend(enriched)
+                    enriched = semantic.analyze(f, file_risks)
+                    # Replace risks for this file
+                    all_risks = [r for r in all_risks if r.file_path != f.path]
+                    all_risks.extend(enriched)
         except Exception as e:
             console.print(f"[yellow]LLM analysis skipped: {e}[/]")
 
