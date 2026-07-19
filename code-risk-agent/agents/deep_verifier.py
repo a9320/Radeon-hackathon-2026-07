@@ -1,9 +1,9 @@
 """Agent 3: Deep Verifier - Triple Cross-Validation
 
 Implements three verification strategies:
-1. Temperature cross-validation (same model, different temps)
-2. Tool cross-validation (Semgrep confirmation)
-3. Knowledge base cross-validation (CWE/CVE lookup)
+1. Tool cross-validation (Semgrep + pattern matching confirmation)
+2. Knowledge base cross-validation (CWE/CVE lookup via NVD)
+3. Memory-based validation (recall known patterns, suppress false positives)
 
 Also implements the self-reflection loop: if Agent 2 missed something,
 Agent 3 can flag it and trigger re-analysis.
@@ -15,9 +15,10 @@ from typing import Optional
 
 from rich.console import Console
 
+from core.cve_client import CVEClient
 from core.llm_client import LLMClient
+from core.memory import MemoryLayer
 from core.models import (
-    AgentRole,
     CodeFile,
     Confidence,
     Evidence,
@@ -28,9 +29,8 @@ from core.models import (
 console = Console()
 
 # Thresholds for confidence adjustment
-HIGH_CONFIRMATIONS = 2   # 2+ confirmations -> HIGH confidence
-MEDIUM_CONFIRMATIONS = 1  # 1 confirmation -> MEDIUM confidence
-# 0 confirmations -> LOW confidence
+HIGH_CONFIRMATIONS = 2
+MEDIUM_CONFIRMATIONS = 1
 
 REFLECTION_PROMPT = """You are a security verification expert. Given a code file and a list of risks found by static + semantic analysis, your job is to:
 
@@ -70,8 +70,15 @@ Output JSON:
 class DeepVerifier:
     """Agent 3: Deep verification with triple cross-validation and self-reflection."""
 
-    def __init__(self, llm_client: Optional[LLMClient] = None):
+    def __init__(
+        self,
+        llm_client: Optional[LLMClient] = None,
+        memory: Optional[MemoryLayer] = None,
+        cve_client: Optional[CVEClient] = None,
+    ):
         self.llm = llm_client
+        self.memory = memory or MemoryLayer()
+        self.cve = cve_client or CVEClient()
 
     def verify_batch(
         self,
@@ -85,9 +92,28 @@ class DeepVerifier:
         console.print("[bold cyan]  Agent 3: Deep verification...[/]")
 
         verified_risks = []
+        suppressed = 0
+
         for risk in risks:
+            # Check memory first
+            memory_entry = self.memory.recall(risk)
+
+            if memory_entry and memory_entry.source_count >= 2:
+                # Known false positive - suppress
+                if risk.id not in [r.id for r in verified_risks]:
+                    suppressed += 1
+                    continue
+
+            # Triple cross-validation
             verified = self._verify_single_risk(risk)
             verified_risks.append(verified)
+
+            # Store in appropriate memory
+            if verified.confidence == Confidence.HIGH:
+                self.memory.store_correct(verified)
+
+        if suppressed > 0:
+            console.print(f"  [dim]  Suppressed {suppressed} known false positives[/]")
 
         # Self-reflection: ask LLM to find missed risks
         if self.llm:
@@ -108,7 +134,6 @@ class DeepVerifier:
         reasons = []
 
         # Strategy 1: Tool cross-validation
-        # If Semgrep independently found this issue, it's more likely real
         has_semgrep = any(e.source == "semgrep" for e in risk.evidence)
         has_pattern = any(e.source == "pattern_match" for e in risk.evidence)
         has_ai = any(e.source == "ai" for e in risk.evidence)
@@ -125,20 +150,32 @@ class DeepVerifier:
             confirmations += 1
             reasons.append("confirmed by LLM analysis")
 
-        # Strategy 2: Knowledge base cross-validation
-        # CWE ID exists and is well-known
+        # Strategy 2: Knowledge base cross-validation (CVE lookup)
         if risk.cwe_id and risk.cwe_id.startswith("CWE-"):
             confirmations += 1
             reasons.append(f"known CWE: {risk.cwe_id}")
 
+            # Active CVE lookup for critical/high risks
+            if risk.severity in (Severity.CRITICAL, Severity.HIGH):
+                try:
+                    cve_summary = self.cve.get_cve_summary(risk.cwe_id)
+                    if "No CVE data" not in cve_summary:
+                        confirmations += 1
+                        reasons.append(f"CVE data exists for {risk.cwe_id}")
+                        # Append CVE info to description
+                        risk = risk.model_copy(update={
+                            "description": risk.description + f" [CVE: {cve_summary[:150]}]",
+                        })
+                except Exception:
+                    pass  # CVE lookup is best-effort
+
         # Strategy 3: Severity consistency check
-        # Critical/High risks with strong evidence get confidence boost
         if risk.severity in (Severity.CRITICAL, Severity.HIGH):
             if len(risk.evidence) >= 2:
                 confirmations += 1
                 reasons.append("multiple evidence for high-severity risk")
 
-        # Adjust confidence based on confirmations
+        # Adjust confidence
         new_confidence = self._calculate_confidence(confirmations)
 
         if new_confidence != risk.confidence:
@@ -155,7 +192,6 @@ class DeepVerifier:
         return risk
 
     def _calculate_confidence(self, confirmations: int) -> Confidence:
-        """Map confirmation count to confidence level."""
         if confirmations >= HIGH_CONFIRMATIONS:
             return Confidence.HIGH
         elif confirmations >= MEDIUM_CONFIRMATIONS:
