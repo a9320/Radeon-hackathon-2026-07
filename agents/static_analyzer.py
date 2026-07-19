@@ -70,6 +70,20 @@ C_DANGEROUS_FUNCTIONS = {
         "desc": "system() 直接执行 shell 命令，可能被注入",
         "fix": "避免使用 system()，用 exec 系列函数替代",
     },
+    "memcpy": {
+        "cwe": "CWE-120",
+        "severity": Severity.MEDIUM,
+        "title": "Unchecked memcpy()",
+        "desc": "memcpy() 不检查目标缓冲区大小，可能导致溢出",
+        "fix": "确保目标缓冲区足够大，或用 memcpy_s() 替代",
+    },
+    "popen": {
+        "cwe": "CWE-78",
+        "severity": Severity.HIGH,
+        "title": "Command Injection via popen()",
+        "desc": "popen() 执行 shell 命令，可能被注入",
+        "fix": "用 pipe+exec 替代，避免 shell 解释",
+    },
 }
 
 C_VULNERABLE_PATTERNS = [
@@ -131,6 +145,41 @@ PYTHON_DANGEROUS_CALLS = {
         "desc": "os.system() 直接执行 shell 命令",
         "fix": "用 subprocess.run() 替代",
     },
+    "yaml.load": {
+        "cwe": "CWE-502",
+        "severity": Severity.HIGH,
+        "title": "Deserialization via yaml.load()",
+        "desc": "yaml.load() 不带 SafeLoader 可执行任意代码",
+        "fix": "用 yaml.safe_load() 替代",
+    },
+    "xml.etree.ElementTree.parse": {
+        "cwe": "CWE-611",
+        "severity": Severity.HIGH,
+        "title": "XXE via xml.etree.ElementTree",
+        "desc": "解析不受信 XML 可能导致 XXE 攻击",
+        "fix": "用 defusedxml 替代，或禁用外部实体",
+    },
+    "tempfile.mktemp": {
+        "cwe": "CWE-377",
+        "severity": Severity.MEDIUM,
+        "title": "Insecure Temporary File",
+        "desc": "mktemp() 存在竞态条件，不安全",
+        "fix": "用 tempfile.mkstemp() 或 TemporaryFile() 替代",
+    },
+    "hashlib.md5": {
+        "cwe": "CWE-328",
+        "severity": Severity.MEDIUM,
+        "title": "Weak Hash: MD5",
+        "desc": "MD5 已被证明不安全，存在碰撞攻击",
+        "fix": "用 hashlib.sha256() 或更高强度的哈希算法",
+    },
+    "hashlib.sha1": {
+        "cwe": "CWE-328",
+        "severity": Severity.LOW,
+        "title": "Weak Hash: SHA-1",
+        "desc": "SHA-1 已被证明不安全，存在碰撞攻击",
+        "fix": "用 hashlib.sha256() 或更高强度的哈希算法",
+    },
 }
 
 PYTHON_VULNERABLE_PATTERNS = [
@@ -149,6 +198,56 @@ PYTHON_VULNERABLE_PATTERNS = [
         "title": "Assert in Production Code",
         "desc": "assert 在 -O 模式下被跳过，不应用于安全检查",
         "fix": "用 if + raise 替代 assert",
+    },
+]
+
+# ─── 新增 C 模式匹配（参考 vigolium/pentest-ai） ─────────────────
+
+C_NEW_PATTERNS = [
+    {
+        "pattern": r"(?:access|fopen|open)\s*\([^)]*argv",
+        "cwe": "CWE-22",
+        "severity": Severity.HIGH,
+        "title": "Path Traversal via user input",
+        "desc": "文件操作使用了命令行参数，可能存在路径遍历",
+        "fix": "验证路径在预期目录内，用 realpath() 规范化",
+    },
+    {
+        "pattern": r"(?:MD5|DES|RC4)\s*\(",
+        "cwe": "CWE-327",
+        "severity": Severity.MEDIUM,
+        "title": "Use of Weak Cryptographic Algorithm",
+        "desc": "使用了已知不安全的加密算法",
+        "fix": "用 AES-256/SHA-256 等现代算法替代",
+    },
+    {
+        "pattern": r"atoi\s*\(|atol\s*\(|atof\s*\(",
+        "cwe": "CWE-190",
+        "severity": Severity.LOW,
+        "title": "Integer Overflow via atoi/atol",
+        "desc": "atoi/atol 不检查溢出，大数值可能溢出",
+        "fix": "用 strtol/strtoul 并检查 errno",
+    },
+]
+
+# ─── Python 新增模式匹配 ───────────────────────────────────────
+
+PYTHON_NEW_PATTERNS = [
+    {
+        "pattern": r"password\s*=\s*['\"].*['\"]",
+        "cwe": "CWE-798",
+        "severity": Severity.HIGH,
+        "title": "Hard-coded Credentials",
+        "desc": "代码中硬编码了密码，不应出现在源码中",
+        "fix": "用环境变量或配置文件存储凭证",
+    },
+    {
+        "pattern": r"(?:secret|token|api_key)\s*=\s*['\"][a-zA-Z0-9+/=]{8,}['\"]",
+        "cwe": "CWE-798",
+        "severity": Severity.HIGH,
+        "title": "Hard-coded Secret/Token",
+        "desc": "代码中硬编码了密钥或令牌",
+        "fix": "用环境变量或密钥管理服务",
     },
 ]
 
@@ -231,6 +330,25 @@ class StaticAnalyzer:
                                 suggestion=pat["fix"],
                             ))
 
+            # 检查新增模式（参考 vigolium/pentest-ai）
+            for pat in C_NEW_PATTERNS:
+                if re.search(pat["pattern"], line):
+                    risks.append(self._make_risk(
+                        title=pat["title"],
+                        description=pat["desc"],
+                        severity=pat["severity"],
+                        confidence=Confidence.MEDIUM,
+                        cwe_id=pat["cwe"],
+                        language=Language.C,
+                        file_path=code_file.path,
+                        line_start=i,
+                        line_end=i,
+                        snippet=line.strip(),
+                        source="pattern_match",
+                        reasoning=f"匹配模式: {pat['pattern']}",
+                        suggestion=pat["fix"],
+                    ))
+
         return risks
 
     # ─── Python 分析 ────────────────────────────────────────────
@@ -266,6 +384,25 @@ class StaticAnalyzer:
 
             # 检查模式匹配
             for pat in PYTHON_VULNERABLE_PATTERNS:
+                if re.search(pat["pattern"], line):
+                    risks.append(self._make_risk(
+                        title=pat["title"],
+                        description=pat["desc"],
+                        severity=pat["severity"],
+                        confidence=Confidence.MEDIUM,
+                        cwe_id=pat["cwe"],
+                        language=Language.PYTHON,
+                        file_path=code_file.path,
+                        line_start=i,
+                        line_end=i,
+                        snippet=line.strip(),
+                        source="pattern_match",
+                        reasoning=f"匹配模式: {pat['pattern']}",
+                        suggestion=pat["fix"],
+                    ))
+
+            # 检查新增模式
+            for pat in PYTHON_NEW_PATTERNS:
                 if re.search(pat["pattern"], line):
                     risks.append(self._make_risk(
                         title=pat["title"],
