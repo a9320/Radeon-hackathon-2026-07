@@ -25,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-code-risk = "main:app"
+code-risk = "main:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

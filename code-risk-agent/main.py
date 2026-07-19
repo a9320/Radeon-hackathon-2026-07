@@ -1,9 +1,13 @@
-"""CodeRisk Agent — AI 代码质量与风险智能体
+"""CodeRisk Agent - AI Code Quality & Risk Analyzer
 
 Usage:
-    code-risk analyze <path>     分析代码文件/目录
-    code-risk demo               运行演示分析
-    code-risk info               显示配置信息
+    code-risk analyze <path>   Analyze code files/directory
+    code-risk demo             Run demo analysis
+    code-risk info             Show configuration
+
+Options:
+    --no-ai                    Disable LLM semantic analysis
+    --semgrep-config <rules>   Semgrep rules (default: p/default)
 """
 
 from __future__ import annotations
@@ -22,7 +26,7 @@ from core.models import AnalysisResult, CodeFile, Language, Severity
 
 console = Console()
 
-BANNER = """[bold cyan]
+BANNER = r"""[bold cyan]
  ██████╗ ██████╗ ██████╗ ███████╗    ██████╗ ██╗███████╗██╗  ██╗
 ██╔════╝██╔═══██╗██╔══██╗██╔════╝    ██╔══██╗██║██╔════╝██║ ██╔╝
 ██║     ██║   ██║██║  ██║█████╗      ██████╔╝██║███████╗█████╔╝
@@ -31,61 +35,96 @@ BANNER = """[bold cyan]
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝
 [/]"""
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+
+SUPPORTED_EXTENSIONS = {".c", ".h", ".py"}
 
 
-def cmd_analyze(path_str: str) -> None:
-    """分析代码文件或目录"""
+def collect_files(path: Path) -> list[CodeFile]:
+    """Collect supported code files from a path."""
+    files: list[CodeFile] = []
+    if path.is_file():
+        if path.suffix in SUPPORTED_EXTENSIONS:
+            files.append(CodeFile.from_path(path))
+    else:
+        for ext in SUPPORTED_EXTENSIONS:
+            for f in path.rglob(f"*{ext}"):
+                if f.is_file():
+                    files.append(CodeFile.from_path(f))
+    return files
+
+
+def cmd_analyze(
+    path_str: str,
+    enable_ai: bool = True,
+    semgrep_config: str = "p/default",
+) -> None:
+    """Analyze code files or directory."""
     path = Path(path_str)
 
     if not path.exists():
-        console.print(f"[red]✗ 路径不存在: {path}[/]")
+        console.print(f"[red]Path not found: {path}[/]")
         sys.exit(1)
 
-    # 收集文件
-    files: list[CodeFile] = []
-    extensions = {".c", ".h", ".py"}
-
-    if path.is_file():
-        if path.suffix in extensions:
-            files.append(CodeFile.from_path(path))
-        else:
-            console.print(f"[red]✗ 不支持的文件类型: {path.suffix}[/]")
-            sys.exit(1)
-    else:
-        for ext in extensions:
-            files.extend(
-                CodeFile.from_path(f) for f in path.rglob(f"*{ext}") if f.is_file()
-            )
-
+    files = collect_files(path)
     if not files:
-        console.print("[yellow]⚠ 未找到可分析的代码文件 (.c/.h/.py)[/]")
+        console.print(f"[yellow]No supported code files found ({', '.join(SUPPORTED_EXTENSIONS)})[/]")
         sys.exit(0)
 
-    console.print(f"\n[bold]📂 扫描 {len(files)} 个文件...[/]\n")
+    console.print(f"\n[bold]Scanning {len(files)} files...[/]\n")
 
-    # 静态分析
-    analyzer = StaticAnalyzer()
+    # Phase 1: Static analysis (regex patterns)
+    static_analyzer = StaticAnalyzer()
     start = time.monotonic()
-    risks = analyzer.analyze_batch(files)
+    all_risks = static_analyzer.analyze_batch(files)
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
-    # 构建结果
+    # Phase 2: Semgrep analysis
+    try:
+        from core.semgrep_runner import analyze_with_semgrep
+        for f in files:
+            semgrep_risks = analyze_with_semgrep(
+                f, config=semgrep_config, risk_counter_start=len(all_risks)
+            )
+            if semgrep_risks:
+                console.print(f"  [red]  Semgrep {f.path}: {len(semgrep_risks)} risks[/]")
+                all_risks.extend(semgrep_risks)
+    except Exception as e:
+        console.print(f"[dim]Semgrep skipped: {e}[/]")
+
+    # Phase 3: LLM semantic analysis (optional)
+    if enable_ai:
+        try:
+            from core.llm_client import LLMClient
+            from agents.semantic_analyzer import SemanticAnalyzer
+
+            with LLMClient() as llm:
+                semantic = SemanticAnalyzer(llm)
+                for f in files:
+                    file_risks = [r for r in all_risks if r.file_path == f.path]
+                    if file_risks:
+                        enriched = semantic.analyze(f, file_risks)
+                        # Replace risks for this file
+                        all_risks = [r for r in all_risks if r.file_path != f.path]
+                        all_risks.extend(enriched)
+        except Exception as e:
+            console.print(f"[yellow]LLM analysis skipped: {e}[/]")
+
+    # Build result
     result = AnalysisResult(
         request_id=f"scan-{int(time.time())}",
         files_analyzed=len(files),
-        risks=risks,
+        risks=all_risks,
         analysis_time_ms=elapsed_ms,
-        model_used="pattern_matcher",
+        model_used="static+semgrep" + ("+llm" if enable_ai else ""),
     )
 
-    # 输出结果
     _print_results(result)
 
 
 def cmd_demo() -> None:
-    """运行演示分析"""
-    console.print("[bold cyan]🎯 CodeRisk Agent 演示[/]\n")
+    """Run demo analysis."""
+    console.print("[bold cyan]CodeRisk Agent Demo[/]\n")
 
     demo_c = CodeFile(
         path=Path("demo/vulnerable.c"),
@@ -95,21 +134,21 @@ def cmd_demo() -> None:
 
 int login(char *input) {
     char password[32];
-    strcpy(password, input);    // 危险: 无边界检查
+    strcpy(password, input);
     if (strcmp(password, "admin123") == 0) {
         printf("Welcome!\\n");
-        system("echo logged in");  // 危险: 命令注入
+        system("echo logged in");
         return 1;
     }
     return 0;
 }
 
 void process() {
-    char *buf = malloc(256);     // 危险: 未检查 NULL
-    gets(buf);                    // 危险: 缓冲区溢出
-    printf(buf);                  // 危险: 格式字符串
+    char *buf = malloc(256);
+    gets(buf);
+    printf(buf);
     free(buf);
-    free(buf);                    // 危险: 双重释放
+    free(buf);
 }
 """,
         language=Language.C,
@@ -124,17 +163,17 @@ from flask import request
 @app.route("/run")
 def run_cmd():
     cmd = request.args.get("cmd")
-    return os.system(cmd)  # 危险: 命令注入
+    return os.system(cmd)
 
 @app.route("/load")
 def load_data():
     data = request.get_data()
-    return pickle.loads(data)  # 危险: 反序列化
+    return pickle.loads(data)
 
 @app.route("/calc")
 def calculate():
     expr = request.args.get("expr")
-    return str(eval(expr))  # 危险: 代码注入
+    return str(eval(expr))
 """,
         language=Language.PYTHON,
     )
@@ -142,9 +181,9 @@ def calculate():
     analyzer = StaticAnalyzer()
     files = [demo_c, demo_py]
 
-    console.print("[bold]📂 演示文件:[/]")
+    console.print("[bold]Demo files:[/]")
     for f in files:
-        console.print(f"  • {f.path} ({f.language.value})")
+        console.print(f"  - {f.path} ({f.language.value})")
     console.print()
 
     risks = analyzer.analyze_batch(files)
@@ -161,29 +200,29 @@ def calculate():
 
 
 def cmd_info() -> None:
-    """显示配置信息"""
-    table = Table(title="CodeRisk Agent 配置", show_header=True)
-    table.add_column("配置项", style="cyan")
-    table.add_column("值", style="green")
+    """Show configuration info."""
+    table = Table(title="CodeRisk Agent Config", show_header=True)
+    table.add_column("Key", style="cyan")
+    table.add_column("Value", style="green")
 
-    table.add_row("版本", VERSION)
-    table.add_row("模型", "Qwen2.5-Coder-7B-Instruct")
-    table.add_row("后端", "共享 API (Radeon Cloud) + 本地 llama.cpp")
-    table.add_row("分析器", "Tree-sitter + Pattern Matcher")
-    table.add_row("支持语言", "C (.c/.h) + Python (.py)")
-    table.add_row("CWE 规则", "CWE-120/134/476/415/78/95/502/73/617")
+    table.add_row("Version", VERSION)
+    table.add_row("Model", "Qwen2.5-Coder-7B-Instruct")
+    table.add_row("Backends", "Shared API + llama-server + llama-cpp-python")
+    table.add_row("Analyzers", "Static (regex) + Semgrep + LLM semantic")
+    table.add_row("Languages", "C (.c/.h) + Python (.py)")
+    table.add_row("CWE Rules", "CWE-120/134/476/415/78/95/502/73/617")
 
     console.print(table)
 
 
 def _print_results(result: AnalysisResult) -> None:
-    """格式化输出分析结果"""
+    """Format and print analysis results."""
     console.print()
 
-    # 风险统计表
-    summary_table = Table(title="📊 风险统计", show_header=True, border_style="cyan")
-    summary_table.add_column("等级", justify="center")
-    summary_table.add_column("数量", justify="center")
+    # Summary table
+    summary_table = Table(title="Risk Summary", show_header=True, border_style="cyan")
+    summary_table.add_column("Severity", justify="center")
+    summary_table.add_column("Count", justify="center")
 
     severity_style = {
         "critical": "bold red",
@@ -193,11 +232,11 @@ def _print_results(result: AnalysisResult) -> None:
         "info": "dim",
     }
     severity_icon = {
-        "critical": "🔴",
-        "high": "🟠",
-        "medium": "🟡",
-        "low": "🔵",
-        "info": "⚪",
+        "critical": "[red]C[/]",
+        "high": "[red]H[/]",
+        "medium": "[yellow]M[/]",
+        "low": "[blue]L[/]",
+        "info": "[dim]I[/]",
     }
 
     for level in ["critical", "high", "medium", "low", "info"]:
@@ -211,55 +250,53 @@ def _print_results(result: AnalysisResult) -> None:
     console.print(summary_table)
     console.print()
 
-    # 详细风险列表
+    # Detail table
     if result.risks:
-        risk_table = Table(title="🔍 风险详情", show_header=True, border_style="yellow")
+        risk_table = Table(title="Risk Details", show_header=True, border_style="yellow")
         risk_table.add_column("ID", style="bold")
-        risk_table.add_column("等级")
+        risk_table.add_column("Sev")
         risk_table.add_column("CWE")
-        risk_table.add_column("标题")
-        risk_table.add_column("文件")
-        risk_table.add_column("行号", justify="center")
-        risk_table.add_column("证据数", justify="center")
+        risk_table.add_column("Title")
+        risk_table.add_column("File")
+        risk_table.add_column("Line", justify="center")
+        risk_table.add_column("Evidence", justify="center")
 
         for risk in sorted(result.risks, key=lambda r: list(Severity).index(r.severity)):
             style = severity_style.get(risk.severity.value, "")
             icon = severity_icon.get(risk.severity.value, "")
             risk_table.add_row(
                 risk.id,
-                f"[{style}]{icon} {risk.severity.value.upper()}[/]",
-                risk.cwe_id or "—",
-                risk.title,
-                str(risk.file_path),
+                f"[{style}]{icon}[/]",
+                risk.cwe_id or "-",
+                risk.title[:50],
+                str(risk.file_path)[-30:],
                 str(risk.line_start),
                 str(risk.evidence_count),
             )
 
         console.print(risk_table)
 
-        # 建议树
+        # Fix suggestions tree
         console.print()
-        tree = Tree("[bold]💡 修复建议[/]", guide_style="cyan")
+        tree = Tree("[bold]Fix Suggestions[/]", guide_style="cyan")
         for risk in result.risks:
             if risk.severity in (Severity.CRITICAL, Severity.HIGH):
                 node = tree.add(f"[red]{risk.id}[/] {risk.title}")
-                node.add(f"[yellow]问题:[/] {risk.description}")
-                node.add(f"[green]修复:[/] {risk.suggestion}")
+                node.add(f"[yellow]Issue:[/] {risk.description[:100]}")
+                node.add(f"[green]Fix:[/] {risk.suggestion[:100]}")
         console.print(tree)
 
-    # 底部统计
+    # Footer stats
     console.print(
         Panel(
-            f"[bold]文件:[/] {result.files_analyzed}  |  "
-            f"[bold]风险:[/] {result.total_risks}  |  "
-            f"[bold]耗时:[/] {result.analysis_time_ms}ms  |  "
-            f"[bold]模型:[/] {result.model_used}",
+            f"[bold]Files:[/] {result.files_analyzed}  |  "
+            f"[bold]Risks:[/] {result.total_risks}  |  "
+            f"[bold]Time:[/] {result.analysis_time_ms}ms  |  "
+            f"[bold]Model:[/] {result.model_used}",
             border_style="cyan",
         )
     )
 
-
-# ─── CLI 入口 ────────────────────────────────────────────────────
 
 def main():
     console.print(BANNER)
@@ -274,15 +311,21 @@ def main():
 
     if cmd == "analyze":
         if len(args) < 2:
-            console.print("[red]✗ 用法: code-risk analyze <path>[/]")
+            console.print("[red]Usage: code-risk analyze <path>[/]")
             sys.exit(1)
-        cmd_analyze(args[1])
+        enable_ai = "--no-ai" not in args
+        semgrep_config = "p/default"
+        if "--semgrep-config" in args:
+            idx = args.index("--semgrep-config")
+            if idx + 1 < len(args):
+                semgrep_config = args[idx + 1]
+        cmd_analyze(args[1], enable_ai=enable_ai, semgrep_config=semgrep_config)
     elif cmd == "demo":
         cmd_demo()
     elif cmd == "info":
         cmd_info()
     else:
-        console.print(f"[red]✗ 未知命令: {cmd}[/]")
+        console.print(f"[red]Unknown command: {cmd}[/]")
         console.print(__doc__)
         sys.exit(1)
 

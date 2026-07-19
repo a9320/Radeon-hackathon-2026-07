@@ -157,15 +157,18 @@ class AnalysisResult(BaseModel):
 
 class LLMBackend(str, Enum):
     SHARED_API = "shared_api"
-    LOCAL = "local"
+    LOCAL_HTTP = "local_http"      # llama-server HTTP API
+    LOCAL_LLAMA_CPP = "local_llama_cpp"  # llama-cpp-python 直接加载
 
 
 class LLMConfig(BaseModel):
     """LLM 客户端配置"""
-    backend: LLMBackend = LLMBackend.SHARED_API
+    backend: LLMBackend = LLMBackend.LOCAL_LLAMA_CPP
     api_url: str = ""
     api_key: str = ""
     model: str = ""
+    model_path: str = Field(default="", description="本地 GGUF 模型路径")
+    n_gpu_layers: int = Field(default=999, description="GPU 层数，999=全部 offload")
     temperature: float = Field(default=0.1, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=256, le=32768)
     timeout: int = Field(default=60, ge=5, le=300)
