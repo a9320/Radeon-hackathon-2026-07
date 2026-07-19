@@ -4,7 +4,7 @@ Generates structured audit reports in multiple formats:
 - JSON (for API/programmatic use)
 - Markdown (for human review)
 - Rich terminal output (for CLI)
-- CVSS scoring for critical risks
+- CWE/CVE external references
 """
 
 from __future__ import annotations
@@ -23,11 +23,63 @@ from core.models import AnalysisResult, Risk, Severity
 console = Console()
 
 
+def _cwe_url(cwe_id: str) -> str:
+    """Generate CWE reference URL."""
+    if not cwe_id or not cwe_id.startswith("CWE-"):
+        return ""
+    num = cwe_id.replace("CWE-", "")
+    return f"https://cwe.mitre.org/data/definitions/{num}.html"
+
+
+def _cve_url(cve_id: str) -> str:
+    """Generate CVE reference URL."""
+    if not cve_id or not cve_id.startswith("CVE-"):
+        return ""
+    return f"https://nvd.nist.gov/vuln/detail/{cve_id}"
+
+
+def _extract_cve_ids(description: str) -> list[str]:
+    """Extract CVE IDs from description text."""
+    import re
+    return re.findall(r"CVE-\d{4}-\d+", description)
+
+
 class ReportGenerator:
     """Agent 4: Generate structured audit reports."""
 
     def generate_json(self, result: AnalysisResult) -> dict:
-        """Generate structured JSON report."""
+        """Generate structured JSON report with external references."""
+        risks_out = []
+        for r in sorted(result.risks, key=lambda r: list(Severity).index(r.severity)):
+            cve_ids = _extract_cve_ids(r.description)
+            refs = {
+                "cwe_url": _cwe_url(r.cwe_id) if r.cwe_id else None,
+                "cve_urls": [_cve_url(c) for c in cve_ids] if cve_ids else None,
+            }
+            risks_out.append({
+                "id": r.id,
+                "title": r.title,
+                "severity": r.severity.value,
+                "confidence": r.confidence.value,
+                "cwe": r.cwe_id,
+                "file": str(r.file_path),
+                "line_start": r.line_start,
+                "line_end": r.line_end,
+                "description": r.description,
+                "suggestion": r.suggestion,
+                "evidence_count": r.evidence_count,
+                "evidence": [
+                    {
+                        "source": e.source,
+                        "rule_id": e.rule_id,
+                        "snippet": e.snippet[:200],
+                        "reasoning": e.reasoning,
+                    }
+                    for e in r.evidence
+                ],
+                "references": refs,
+            })
+
         return {
             "scan_id": result.request_id,
             "timestamp": result.timestamp.isoformat(),
@@ -37,40 +89,16 @@ class ReportGenerator:
                 "has_critical": result.has_critical,
                 "risk_breakdown": result.risk_summary,
             },
-            "risks": [
-                {
-                    "id": r.id,
-                    "title": r.title,
-                    "severity": r.severity.value,
-                    "confidence": r.confidence.value,
-                    "cwe": r.cwe_id,
-                    "file": str(r.file_path),
-                    "line_start": r.line_start,
-                    "line_end": r.line_end,
-                    "description": r.description,
-                    "suggestion": r.suggestion,
-                    "evidence_count": r.evidence_count,
-                    "evidence": [
-                        {
-                            "source": e.source,
-                            "rule_id": e.rule_id,
-                            "snippet": e.snippet[:200],
-                            "reasoning": e.reasoning,
-                        }
-                        for e in r.evidence
-                    ],
-                }
-                for r in sorted(result.risks, key=lambda r: list(Severity).index(r.severity))
-            ],
+            "risks": risks_out,
             "meta": {
                 "model_used": result.model_used,
                 "analysis_time_ms": result.analysis_time_ms,
-                "version": "0.3.0",
+                "version": "0.3.1",
             },
         }
 
     def generate_markdown(self, result: AnalysisResult) -> str:
-        """Generate Markdown audit report."""
+        """Generate Markdown audit report with CWE/CVE links."""
         lines = [
             "# CodeRisk Agent - Security Audit Report",
             "",
@@ -84,8 +112,8 @@ class ReportGenerator:
             "",
             "## Executive Summary",
             "",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "| Metric | Value |",
+            "|--------|-------|",
             f"| Total Risks | **{result.total_risks}** |",
             f"| Critical | **{result.risk_summary.get('critical', 0)}** |",
             f"| High | **{result.risk_summary.get('high', 0)}** |",
@@ -101,7 +129,6 @@ class ReportGenerator:
                 "",
             ])
 
-        # Risk details
         lines.extend(["## Risk Details", ""])
 
         for risk in sorted(result.risks, key=lambda r: list(Severity).index(r.severity)):
@@ -113,14 +140,26 @@ class ReportGenerator:
                 Severity.INFO: "⚪",
             }.get(risk.severity, "⚪")
 
+            cwe_link = ""
+            if risk.cwe_id:
+                cwe_link = f"[{risk.cwe_id}]({_cwe_url(risk.cwe_id)})"
+
+            cve_ids = _extract_cve_ids(risk.description)
+            cve_links = ""
+            if cve_ids:
+                cve_links = " | ".join(
+                    f"[{c}]({_cve_url(c)})" for c in cve_ids
+                )
+
             lines.extend([
                 f"### {risk.id}: {severity_icon} {risk.title}",
                 "",
-                f"| Field | Value |",
-                f"|-------|-------|",
+                "| Field | Value |",
+                "|-------|-------|",
                 f"| Severity | **{risk.severity.value.upper()}** |",
                 f"| Confidence | {risk.confidence.value} |",
-                f"| CWE | {risk.cwe_id or 'N/A'} |",
+                f"| CWE | {cwe_link or 'N/A'} |",
+                f"| CVE | {cve_links or 'N/A'} |",
                 f"| File | `{risk.file_path}` |",
                 f"| Lines | {risk.line_start}-{risk.line_end} |",
                 f"| Evidence Sources | {risk.evidence_count} |",
@@ -131,25 +170,30 @@ class ReportGenerator:
                 "",
             ])
 
-            # Evidence details
             if risk.evidence:
                 lines.append("**Evidence:**")
                 for e in risk.evidence:
                     lines.append(f"- Source: `{e.source}` | {e.reasoning}")
                 lines.append("")
 
-        # Footer
         lines.extend([
             "---",
             "",
-            f"*Generated by CodeRisk Agent v0.3.0 | {result.timestamp.isoformat()}*",
+            "## References",
+            "",
+            "- [CWE List](https://cwe.mitre.org/data/index.html)",
+            "- [NVD - National Vulnerability Database](https://nvd.nist.gov/)",
+            "- [OWASP Top 10](https://owasp.org/www-project-top-ten/)",
+            "",
+            "---",
+            "",
+            f"*Generated by CodeRisk Agent v0.3.1 | {result.timestamp.isoformat()}*",
         ])
 
         return "\n".join(lines)
 
     def print_terminal(self, result: AnalysisResult) -> None:
         """Print rich terminal output."""
-        # Summary table
         summary_table = Table(
             title="Risk Summary",
             show_header=True,
@@ -185,7 +229,6 @@ class ReportGenerator:
         console.print(summary_table)
         console.print()
 
-        # Detail table
         if result.risks:
             risk_table = Table(
                 title="Risk Details",
@@ -226,7 +269,6 @@ class ReportGenerator:
 
             console.print(risk_table)
 
-            # Fix suggestions tree (only critical/high)
             critical_high = [
                 r for r in result.risks
                 if r.severity in (Severity.CRITICAL, Severity.HIGH)
@@ -238,9 +280,10 @@ class ReportGenerator:
                     node = tree.add(f"[red]{risk.id}[/] {risk.title}")
                     node.add(f"[yellow]Issue:[/] {risk.description[:120]}")
                     node.add(f"[green]Fix:[/] {risk.suggestion[:120]}")
+                    if risk.cwe_id:
+                        node.add(f"[cyan]CWE:[/] {_cwe_url(risk.cwe_id)}")
                 console.print(tree)
 
-        # Footer
         console.print()
         console.print(
             Panel(
@@ -258,7 +301,7 @@ class ReportGenerator:
         output_dir: str = ".",
         formats: list[str] = ["json", "md"],
     ) -> list[str]:
-        """Save reports to files. Returns list of saved file paths."""
+        """Save reports to files."""
         import os
 
         saved = []
