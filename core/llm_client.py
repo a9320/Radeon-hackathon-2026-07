@@ -27,26 +27,31 @@ DEFAULT_CONFIGS = {
         api_url="https://developer.amd.com.cn/radeon/api/v1",
         model="Qwen/Qwen3.6-35B-A3B",
         temperature=0.1,
-        max_tokens=4096,
+        max_tokens=8192,
     ),
     LLMBackend.LOCAL_HTTP: LLMConfig(
         backend=LLMBackend.LOCAL_HTTP,
         api_url="http://localhost:8080",
         model="qwen2.5-coder-7b-instruct",
         temperature=0.1,
-        max_tokens=4096,
+        max_tokens=8192,
     ),
     LLMBackend.LOCAL_LLAMA_CPP: LLMConfig(
         backend=LLMBackend.LOCAL_LLAMA_CPP,
         model_path="/workspace/llama.cpp/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
         model="qwen2.5-coder-7b-instruct",
         temperature=0.1,
-        max_tokens=4096,
+        max_tokens=8192,
     ),
 }
 
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0
+
+# Qwen2.5 ChatML special tokens
+_IM_START = "<im_start>"
+_IM_END = "<im_end>"
+_ENDOFTEXT = "<|endoftext|>"
 
 
 class LLMClient:
@@ -189,7 +194,7 @@ class LLMClient:
             prompt,
             max_tokens=max_tokens,
             temperature=temperature,
-            stop="<|endofassistant|>",
+            stop=[_IM_END, "<|endoftext|>"],
         )
         elapsed_ms = int((time.monotonic() - start) * 1000)
         self._request_count += 1
@@ -232,8 +237,8 @@ class LLMClient:
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
-            parts.append(f"<imstart>{role}\n{content}</im>")
-        parts.append(f"<imstart>assistant\n")
+            parts.append(f"{_IM_START}{role}\n{content}{_IM_END}")
+        parts.append(f"{_IM_START}assistant\n")
         return "\n".join(parts)
 
     def close(self):
@@ -277,5 +282,17 @@ def _extract_json(text: str) -> dict:
                 except json.JSONDecodeError:
                     start = -1
 
-    raise ValueError(f"Failed to extract JSON from LLM response:\n{text[:300]}...")
+    # Try to repair truncated JSON by closing brackets
+    stripped = text.strip()
+    if stripped.startswith("{"):
+        # Count open vs close braces
+        opens = stripped.count("{")
+        closes = stripped.count("}")
+        if opens > closes:
+            repair = stripped + "}" * (opens - closes)
+            try:
+                return json.loads(repair)
+            except json.JSONDecodeError:
+                pass
 
+    raise ValueError(f"Failed to extract JSON from LLM response:\n{text[:300]}...")
