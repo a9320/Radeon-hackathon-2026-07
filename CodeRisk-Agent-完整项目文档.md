@@ -236,8 +236,9 @@ code-risk-agent/
 │   ├── cve_client.py          # NVD API client
 │   ├── semgrep_runner.py      # Semgrep integration
 │   ├── taint_analyzer.py      # Data flow tracking
-│   ├── dependency_scanner.py  # Vulnerable dependency detection
-│   └── attack_knowledge.py    # CWE/ATT&CK knowledge base
+│   ├── dependency_scanner.py  # Vulnerable dependency detection (OSV + local)
+│   ├── attack_knowledge.py    # CWE/ATT&CK knowledge base
+│   └── retry.py               # Unified retry policy
 ├── tests/
 │   └── test_static_analyzer.py
 ├── docs/
@@ -276,7 +277,9 @@ pytest --cov=. --cov-report=html
 | LLM Runtime | llama.cpp with HIP backend |
 | Static Analysis | Regex + Tree-sitter + Semgrep |
 | CVE Database | NVD API (National Vulnerability Database) |
+| Dependency Scan | OSV API + local fallback |
 | Memory | JSON-based dual memory system |
+| Output Formats | JSON, Markdown, SARIF 2.1.0, Rich terminal |
 | CLI | Rich terminal UI |
 | GPU | AMD Radeon RX 7900 XTX + ROCm 7.2.4 |
 
@@ -987,7 +990,7 @@ Usage:
 Options:
     --no-ai                    Disable LLM semantic analysis
     --semgrep-config <rules>   Semgrep rules (default: p/default)
-    --output <format>          Output format: terminal|json|md|all (default: terminal)
+    --output <format>          Output format: terminal|json|md|sarif|all (default: terminal)
 """
 
 from __future__ import annotations
@@ -1210,7 +1213,7 @@ if __name__ == "__main__":
 
 ```
 
-## 6.2 orchestrator.py (259 lines)
+## 6.2 orchestrator.py (285 lines)
 
 ```python
 """Orchestrator: State Machine Pipeline
@@ -1285,6 +1288,7 @@ class Orchestrator:
     ) -> AnalysisResult:
         """Run the complete analysis pipeline."""
         start_time = time.monotonic()
+        perf_timings: dict[str, float] = {}  # Phase -> duration_ms
 
         # State: PARSE
         self.state = State.PARSE
@@ -1306,6 +1310,7 @@ class Orchestrator:
         all_risks = []
 
         # Phase 1: Static analysis
+        t0 = time.monotonic()
         console.print("[bold]  Phase 1: Static analysis (Agent 1)[/]")
         for f in valid_files:
             risks = self.static_analyzer.analyze(f)
@@ -1314,8 +1319,10 @@ class Orchestrator:
                 console.print(f"  [red]  {f.path}: {len(risks)} risks[/]")
             else:
                 console.print(f"  [green]  {f.path}: clean[/]")
+        perf_timings['agent1_static'] = (time.monotonic() - t0) * 1000
 
         # Phase 1.5: Dependency scanning
+        t0 = time.monotonic()
         console.print("\n[bold]  Phase 1.5: Dependency scanning[/]")
         try:
             from pathlib import Path
@@ -1350,8 +1357,10 @@ class Orchestrator:
                 console.print("  [green]  Dependencies: clean[/]")
         except Exception as e:
             console.print(f"[dim]  Dependency scan skipped: {e}[/]")
+        perf_timings['dep_scan'] = (time.monotonic() - t0) * 1000
 
         # Phase 2: Semgrep
+        t0 = time.monotonic()
         console.print("\n[bold]  Phase 2: Semgrep analysis[/]")
         try:
             from core.semgrep_runner import analyze_with_semgrep
@@ -1364,8 +1373,10 @@ class Orchestrator:
                     all_risks.extend(semgrep_risks)
         except Exception as e:
             console.print(f"[dim]  Semgrep skipped: {e}[/]")
+        perf_timings['semgrep'] = (time.monotonic() - t0) * 1000
 
         # Phase 2.5: Taint analysis (data flow tracking)
+        t0 = time.monotonic()
         console.print("\n[bold]  Phase 2.5: Taint analysis (data flow)[/]")
         for f in valid_files:
             try:
@@ -1404,9 +1415,11 @@ class Orchestrator:
                     console.print(f"  [green]  Taint {f.path}: clean[/]")
             except Exception as e:
                 console.print(f"[dim]  Taint analysis skipped for {f.path}: {e}[/]")
+        perf_timings['taint'] = (time.monotonic() - t0) * 1000
 
         # Phase 3: LLM semantic analysis
         if request.enable_ai and self.semantic_analyzer:
+            t0 = time.monotonic()
             console.print("\n[bold]  Phase 3: LLM semantic analysis (Agent 2)[/]")
             for f in valid_files:
                 file_risks = [r for r in all_risks if r.file_path == f.path]
@@ -1419,9 +1432,11 @@ class Orchestrator:
                     all_risks.extend(enriched)
                 except Exception as e:
                     console.print(f"  [yellow]  LLM failed for {f.path}: {e}[/]")
+            perf_timings['agent2_llm'] = (time.monotonic() - t0) * 1000
 
         # State: VERIFY
         self.state = State.VERIFY
+        t0 = time.monotonic()
         console.print("\n[bold]  Phase 4: Deep verification (Agent 3)[/]")
         mem_stats = self.memory.get_stats()
         console.print(
@@ -1429,6 +1444,7 @@ class Orchestrator:
             f"{mem_stats['error_patterns']} error patterns loaded[/]"
         )
         all_risks = self.verifier.verify_batch(valid_files, all_risks)
+        perf_timings['agent3_verify'] = (time.monotonic() - t0) * 1000
 
         # State: REPORT
         self.state = State.REPORT
@@ -1448,10 +1464,23 @@ class Orchestrator:
         )
 
         console.print(f"\n[bold]  Phase 5: Report generation (Agent 4)[/]")
+        t0 = time.monotonic()
         if output_format == "terminal" or output_format == "all":
             self.reporter.print_terminal(result)
         if output_format in ("json", "md", "all"):
             self.reporter.save_report(result, formats=["json", "md"])
+        if output_format in ("sarif", "all"):
+            self.reporter.save_report(result, formats=["sarif"])
+        perf_timings['agent4_report'] = (time.monotonic() - t0) * 1000
+
+        # Store timings in result
+        result = result.model_copy(update={"perf_timings": perf_timings})
+
+        # Print performance summary
+        console.print("\n[bold cyan]  Performance Summary[/]")
+        for phase, ms in perf_timings.items():
+            pct = (ms / elapsed_ms * 100) if elapsed_ms > 0 else 0
+            console.print(f"  [dim]{phase:>20}: {ms:>8.0f} ms ({pct:>5.1f}%)[/]")
 
         self.state = State.DONE
         console.print(f"\n[green]  Analysis complete. {result.total_risks} risks found in {elapsed_ms}ms.[/]")
@@ -1474,7 +1503,7 @@ class Orchestrator:
 
 ```
 
-## 6.3 core/__init__.py (8 lines)
+## 6.3 core/__init__.py (9 lines)
 
 ```python
 """CodeRisk Agent - Core Module"""
@@ -1484,10 +1513,11 @@ from core.llm_client import LLMClient
 from core.semgrep_runner import run_semgrep, semgrep_to_risks, analyze_with_semgrep
 from core.cve_client import CVEClient
 from core.memory import MemoryLayer
+from core.retry import retry
 
 ```
 
-## 6.4 core/models.py (187 lines)
+## 6.4 core/models.py (188 lines)
 
 ```python
 """CodeRisk Agent — 核心数据模型
@@ -1624,6 +1654,7 @@ class AnalysisResult(BaseModel):
     risks: list[Risk] = Field(default_factory=list)
     analysis_time_ms: int = 0
     model_used: str = ""
+    perf_timings: dict[str, float] = Field(default_factory=dict, description="Phase timing in ms")
     timestamp: datetime = Field(default_factory=datetime.now)
 
     @computed_field
@@ -2729,13 +2760,14 @@ class TaintAnalyzer:
 
 ```
 
-## 6.10 core/dependency_scanner.py (199 lines)
+## 6.10 core/dependency_scanner.py (289 lines)
 
 ```python
 """Dependency Scanner Module
 
-Inspired by Vuls - scans project dependencies for known vulnerabilities.
-Checks requirements.txt, package.json, pyproject.toml for outdated/vulnerable packages.
+Scans project dependencies for known vulnerabilities.
+Primary source: OSV API (https://api.osv.dev) — real-time vulnerability database.
+Fallback: local hardcoded vulnerable package dictionary.
 """
 
 from __future__ import annotations
@@ -2745,11 +2777,80 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import httpx
 from rich.console import Console
 
 console = Console()
 
 # Known vulnerable package versions (simplified - in production use OSV/NVD API)
+OSV_API_URL = "https://api.osv.dev/v1/query"
+OSV_BATCH_URL = "https://api.osv.dev/v1/querybatch"
+OSV_TIMEOUT = 10
+
+
+# ─── OSV API Client ─────────────────────────────────────────────
+
+
+def _query_osv(package_name: str, version: str, ecosystem: str = "PyPI") -> list[dict]:
+    """Query OSV API for vulnerabilities of a specific package version."""
+    try:
+        client = httpx.Client(timeout=OSV_TIMEOUT)
+        resp = client.post(
+            OSV_API_URL,
+            json={
+                "version": version,
+                "package": {"name": package_name, "ecosystem": ecosystem},
+            },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        vulns = data.get("vulnerabilities", [])
+        results = []
+        for v in vulns:
+            v_id = v.get("id", "unknown")
+            aliases = v.get("aliases", [])
+            summary = v.get("summary", v.get("details", "")[:200])
+            severity = "unknown"
+            # Extract severity from database_specific or severity field
+            for sev in v.get("severity", []):
+                if sev.get("type") == "CVSS_V3":
+                    score_str = sev.get("score", "")
+                    # Parse CVSS vector for severity
+                    if "CRITICAL" in score_str.upper():
+                        severity = "critical"
+                    elif "HIGH" in score_str.upper():
+                        severity = "high"
+                    elif "MEDIUM" in score_str.upper():
+                        severity = "medium"
+                    elif "LOW" in score_str.upper():
+                        severity = "low"
+            # Extract CWE
+            cwe = ""
+            for ref in v.get("references", []):
+                url = ref.get("url", "")
+                if "cwe.mitre.org" in url:
+                    cwe_match = re.search(r'CWE-\d+', url)
+                    if cwe_match:
+                        cwe = cwe_match.group()
+                        break
+            # If no severity, try to infer from database_specific
+            if severity == "unknown":
+                db_sev = v.get("database_specific", {}).get("severity", "")
+                if db_sev:
+                    severity = db_sev.lower()
+            results.append({
+                "id": v_id,
+                "aliases": aliases,
+                "summary": summary[:200],
+                "severity": severity,
+                "cwe": cwe,
+            })
+        return results
+    except Exception:
+        return []
+
+
+# Known vulnerable package versions (local fallback when OSV is unavailable)
 VULNERABLE_PACKAGES = {
     # Python
     "django": {
@@ -2820,7 +2921,10 @@ def _version_below(current: str, threshold: str) -> bool:
 
 
 def scan_requirements_txt(file_path: Path) -> list[dict]:
-    """Scan Python requirements.txt for vulnerable packages."""
+    """Scan Python requirements.txt for vulnerable packages.
+
+    Uses OSV API as primary source, falls back to local dictionary.
+    """
     findings = []
     try:
         content = file_path.read_text(encoding="utf-8", errors="replace")
@@ -2837,16 +2941,33 @@ def scan_requirements_txt(file_path: Path) -> list[dict]:
         if match:
             pkg_name = match.group(1).lower()
             version = match.group(2)
-            if pkg_name in VULNERABLE_PACKAGES:
-                vuln = VULNERABLE_PACKAGES[pkg_name]
-                if _version_below(version, vuln["vulnerable_below"]):
+
+            # Try OSV API first
+            osv_vulns = _query_osv(pkg_name, version)
+            if osv_vulns:
+                for v in osv_vulns:
                     findings.append({
                         "package": pkg_name,
                         "version": version,
-                        "cwe": vuln["cwe"],
-                        "description": vuln["description"],
-                        "fix": f"Upgrade {pkg_name} to >= {vuln['vulnerable_below']}",
+                        "cwe": v.get("cwe", "CWE-000"),
+                        "description": v.get("summary", "Vulnerability found via OSV"),
+                        "fix": f"Upgrade {pkg_name} — see {v.get('id', 'OSV')} for details",
+                        "source": "osv",
+                        "osv_id": v.get("id", ""),
                     })
+            else:
+                # Fallback to local dictionary
+                if pkg_name in VULNERABLE_PACKAGES:
+                    vuln = VULNERABLE_PACKAGES[pkg_name]
+                    if _version_below(version, vuln["vulnerable_below"]):
+                        findings.append({
+                            "package": pkg_name,
+                            "version": version,
+                            "cwe": vuln["cwe"],
+                            "description": vuln["description"],
+                            "fix": f"Upgrade {pkg_name} to >= {vuln['vulnerable_below']}",
+                            "source": "local",
+                        })
 
     return findings
 
@@ -3165,7 +3286,72 @@ def get_compliance_references(cwe_id: str) -> dict[str, str]:
 
 ```
 
-## 6.12 agents/__init__.py (7 lines)
+## 6.12 core/retry.py (60 lines)
+
+```python
+"""CodeRisk Agent - Retry Policy
+
+Unified retry decorator with exponential backoff.
+Replaces scattered retry logic across modules.
+"""
+
+from __future__ import annotations
+
+import time
+from functools import wraps
+from typing import Callable, Optional, Type
+
+from rich.console import Console
+
+console = Console()
+
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_BASE_DELAY = 1.0
+DEFAULT_MAX_DELAY = 30.0
+
+
+def retry(
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    base_delay: float = DEFAULT_BASE_DELAY,
+    max_delay: float = DEFAULT_MAX_DELAY,
+    exceptions: tuple[Type[Exception], ...] = (Exception,),
+    on_retry: Optional[Callable] = None,
+):
+    """Retry decorator with exponential backoff.
+
+    Args:
+        max_retries: Maximum number of retry attempts
+        base_delay: Initial delay in seconds
+        max_delay: Maximum delay cap
+        exceptions: Tuple of exception types to catch
+        on_retry: Optional callback(attempt, delay, exception) called before each retry
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_err = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    last_err = e
+                    if attempt < max_retries:
+                        delay = min(base_delay * (2 ** attempt), max_delay)
+                        if on_retry:
+                            on_retry(attempt + 1, delay, e)
+                        else:
+                            console.print(
+                                f"[yellow]Retry {attempt + 1}/{max_retries} "
+                                f"after {delay:.1f}s: {e}[/]"
+                            )
+                        time.sleep(delay)
+            raise last_err
+        return wrapper
+    return decorator
+
+```
+
+## 6.13 agents/__init__.py (7 lines)
 
 ```python
 """CodeRisk Agent - Agent Module"""
@@ -3177,7 +3363,7 @@ from agents.report_generator import ReportGenerator
 
 ```
 
-## 6.13 agents/static_analyzer.py (443 lines)
+## 6.14 agents/static_analyzer.py (443 lines)
 
 ```python
 """Agent 1: Tree-sitter 静态分析器
@@ -3625,7 +3811,7 @@ class StaticAnalyzer:
 
 ```
 
-## 6.14 agents/semantic_analyzer.py (246 lines)
+## 6.15 agents/semantic_analyzer.py (246 lines)
 
 ```python
 """Agent 2: Semantic Analyzer (LLM-driven)
@@ -3876,7 +4062,7 @@ Output JSON:
 
 ```
 
-## 6.15 agents/deep_verifier.py (275 lines)
+## 6.16 agents/deep_verifier.py (275 lines)
 
 ```python
 """Agent 3: Deep Verifier - Triple Cross-Validation
@@ -4156,7 +4342,7 @@ Please verify these risks and find any missed vulnerabilities."""
 
 ```
 
-## 6.16 agents/report_generator.py (352 lines)
+## 6.17 agents/report_generator.py (469 lines)
 
 ```python
 """Agent 4: Report Generator
@@ -4375,6 +4561,115 @@ class ReportGenerator:
 
         return "\n".join(lines)
 
+    def generate_sarif(self, result: AnalysisResult) -> dict:
+        """Generate SARIF 2.1.0 report.
+
+        Static Analysis Results Interchange Format — OASIS standard.
+        Compatible with GitHub Code Scanning, VS Code SARIF Viewer,
+        Azure DevOps, and other SARIF consumers.
+        """
+        # Severity -> SARIF level mapping
+        level_map = {
+            Severity.CRITICAL: "error",
+            Severity.HIGH: "error",
+            Severity.MEDIUM: "warning",
+            Severity.LOW: "note",
+            Severity.INFO: "none",
+        }
+
+        # Build rules from unique CWEs
+        rules = []
+        seen_cwes = set()
+        for risk in result.risks:
+            cwe = risk.cwe_id or "CWE-000"
+            if cwe not in seen_cwes:
+                seen_cwes.add(cwe)
+                rules.append({
+                    "id": cwe,
+                    "name": risk.title,
+                    "shortDescription": {"text": risk.title},
+                    "fullDescription": {"text": risk.description[:500]},
+                    "help": {"text": risk.suggestion},
+                    "defaultConfiguration": {
+                        "level": level_map.get(risk.severity, "warning")
+                    },
+                    "properties": {
+                        "tags": ["security", cwe.lower().replace("cwe-", "cwe-")],
+                    },
+                })
+
+        # Build results
+        sarif_results = []
+        for risk in result.risks:
+            cve_ids = _extract_cve_ids(risk.description)
+            sarif_result = {
+                "ruleId": risk.cwe_id or "CWE-000",
+                "ruleIndex": next(
+                    (i for i, r in enumerate(rules) if r["id"] == risk.cwe_id), 0
+                ),
+                "level": level_map.get(risk.severity, "warning"),
+                "message": {
+                    "text": f"{risk.title}: {risk.description[:300]}"
+                },
+                "locations": [{
+                    "physicalLocation": {
+                        "artifactLocation": {
+                            "uri": str(risk.file_path),
+                            "uriBaseId": "%SRCROOT%",
+                        },
+                        "region": {
+                            "startLine": risk.line_start,
+                            "endLine": risk.line_end,
+                        },
+                    },
+                }],
+                "fingerprints": {
+                    "coderisk/v1": risk.id,
+                },
+            }
+
+            # Add CWE as a property
+            if risk.cwe_id:
+                sarif_result["properties"] = {
+                    "cwe": risk.cwe_id,
+                    "confidence": risk.confidence.value,
+                }
+
+            # Add CVE references
+            if cve_ids:
+                sarif_result["relatedLocations"] = [
+                    {
+                        "id": i,
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": _cve_url(c),
+                            },
+                        },
+                        "message": {"text": f"CVE reference: {c}"},
+                    }
+                    for i, c in enumerate(cve_ids)
+                ]
+
+            sarif_results.append(sarif_result)
+
+        return {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{
+                "tool": {
+                    "driver": {
+                        "name": "CodeRisk Agent",
+                        "version": "0.3.2",
+                        "informationUri": "https://github.com/a9320/code-risk-agent",
+                        "semanticVersion": "0.3.2",
+                        "rules": rules,
+                    },
+                },
+                "results": sarif_results,
+                "columnKindCodeUnits": "utf16CodeUnits",
+            }],
+        }
+
     def print_terminal(self, result: AnalysisResult) -> None:
         """Print rich terminal output."""
         summary_table = Table(
@@ -4508,6 +4803,14 @@ class ReportGenerator:
                 f.write(md_content)
             saved.append(md_path)
             console.print(f"[dim]Markdown report saved: {md_path}[/]")
+
+        if "sarif" in formats:
+            sarif_path = os.path.join(output_dir, f"{base_name}.sarif")
+            sarif_report = self.generate_sarif(result)
+            with open(sarif_path, "w") as f:
+                json.dump(sarif_report, f, indent=2, ensure_ascii=False)
+            saved.append(sarif_path)
+            console.print(f"[dim]SARIF report saved: {sarif_path}[/]")
 
         return saved
 
