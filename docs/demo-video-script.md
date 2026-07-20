@@ -1,9 +1,9 @@
-# CodeRisk Agent — Demo Video Script v3
+# CodeRisk Agent — Demo Video Script v4
 
 > Duration: 3 min 35 sec (215s) + 25s buffer = 4 min max
 > Format: Terminal recording + narration
 > Language: English
-> Version: v3 (2026-07-19) — Based on Kimi + DeepSeek feedback
+> Version: v4 (2026-07-19) — Resolves all5 remaining risks from Kimi review
 
 ---
 
@@ -29,13 +29,13 @@
 python3 main.py analyze tests/test_cases/ --output terminal
 ```
 
-> "One command. Five files. Let me walk you through what happens."
+> "One command. Let me walk you through what happens."
 
 ### Part B: Phase 1-2 — Static Analysis (15s)
 
 **[Screen: Terminal showing Phase1 and Phase2 output]**
 
-> "Phase 1: Pattern matching — buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks."
+> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks across our test suite of5 vulnerability samples — both C and Python files."
 
 > "Phase 2: Semgrep integration — industry-standard rules from the open-source community."
 
@@ -59,7 +59,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Show risk table with CWE links, then zoom into one risk]**
 
-> "25 vulnerabilities detected. Every one has evidence, CWE classification, and a fix suggestion."
+> "25 vulnerabilities detected across C and Python files. Every one has evidence, CWE classification, and a fix suggestion."
 
 **[Screen: Zoom into RISK-014 — show before/after code]**
 
@@ -71,27 +71,35 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Part A: Overview (10s)
 
-**[Screen: Architecture diagram —4 agents + orchestrator + memory + CVE]**
+**[Screen: Simple pipeline diagram — just Agent1 → Agent2 → Agent3 → Agent4, left to right]**
 
-> "Four specialized agents, orchestrated pipeline, memory learning, live CVE validation. Let me show you the key differentiators."
+> "Four specialized agents in an orchestrated pipeline. Let me show you the key differentiators."
 
 ### Part B: Agent 2 — Semantic Analysis (10s)
 
-**[Screen: Highlight Agent2, show LLM inference]**
+**[Screen: Highlight Agent2, show LLM inference output]**
 
 > "Agent 2 runs Qwen2.5-Coder-7B on the AMD GPU. It understands code logic, not just patterns. It can find vulnerabilities that no regex will ever catch."
 
 ### Part C: Agent 3 — Deep Verification (25s)
 
-**[Screen: Highlight Agent3, show triple validation flow]**
+**[Screen: Animate — first show tool confirmation, then add CWE layer, then add CVE layer]**
 
 > "Agent 3 is where the magic happens. Triple cross-validation."
 
-> "First: tool confirmation — did static analysis and LLM agree? Second: CWE knowledge base — are there known exploits? Third: live NVD query — real CVE numbers, real CVSS scores."
+> "First: tool confirmation — did static analysis and LLM agree?"
+
+**[Screen: Add CWE knowledge base layer]**
+
+> "Second: CWE knowledge base — are there known exploits?"
+
+**[Screen: Add NVD/CVE layer]**
+
+> "Third: live NVD query — real CVE numbers, real CVSS scores."
 
 **[Screen: Show Agent3 finding missed risks]**
 
-> "And the self-reflection loop. Agent 3 asks itself: 'Did I miss anything?' In our tests, it found 4 additional vulnerabilities that the previous agents missed. And it automatically suppressed 1 known false positive from earlier scans."
+> "And the self-reflection loop. Agent 3 asks: 'Did I miss anything?' In our tests, it found 4 vulnerabilities the previous agents missed. And it automatically suppressed 1 known false positive."
 
 ### Part D: Memory Layer (15s)
 
@@ -128,9 +136,9 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Part C: ROCm Build (15s)
 
-**[Screen: Show key cmake command]**
+**[Screen: Show terminal with build success message]**
 
-> "The key was getting HIP backend working in the Radeon Cloud container. We discovered the llama.cpp build system changed the flag name from `GGML_HIPBLAS` to `GGML_HIP`. Once we found that, GPU inference worked immediately."
+> "Getting HIP working in the Radeon Cloud container took some detective work. We found the right build configuration for ROCm 7.2.4, and GPU inference worked immediately."
 
 > "This is what local AI looks like. Real performance. Real privacy. Real security."
 
@@ -196,3 +204,10 @@ python3 main.py analyze tests/test_cases/ --output terminal
 | **Total** | **215s** | **3:35** |
 | Buffer | 25s | Transitions, pauses |
 | **Max** | **240s** | **4:00** |
+
+### v4 Changelog (from v3)
+1. ✅ ROCm Build story simplified — removed cmake flag details, kept "found the right build configuration"
+2. ✅ "25 vulnerabilities" contextualized — added "across C and Python files" and "test suite of5 vulnerability samples"
+3. ✅ Architecture diagram uses step-by-step animation — start with simple pipeline, layer by layer add CWE/CVE
+4. ✅ Multi-language support mentioned — "both C and Python files" in Scene 2
+5. ✅ One-click fix noted as future work — "copy-paste ready" in current version, --fix parameter planned

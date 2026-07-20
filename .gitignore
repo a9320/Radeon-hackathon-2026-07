@@ -34,6 +34,11 @@ Thumbs.db
 *.log
 logs/
 
+# Source dumps (versioned snapshots)
+CodeRisk-Agent-*-Source.md
+CodeRisk-Agent-*-源码.md
+CodeRisk-Agent-源码.md
+
 # Coverage
 htmlcov/
 .coverage
