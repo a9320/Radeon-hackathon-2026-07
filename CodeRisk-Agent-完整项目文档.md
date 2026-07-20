@@ -1,13 +1,10 @@
-# CodeRisk Agent — 完整项目文档
+# CodeRisk Agent
 
-> AMD AI DevMaster Hackathon | Track 2: Agentic AI
-> 团队: Yang Weike (Captain) + lolo (AI Assistant)
-> 版本: v0.3.2 | 日期: 2026-07-20
-> 仓库: https://github.com/a9320/code-risk-agent
+> v0.3.2 | 2026-07-20 | https://github.com/a9320/code-risk-agent
 
 ---
 
-# 1. 英文 README
+# 1. README
 
 # CodeRisk Agent 🛡️
 
@@ -318,7 +315,7 @@ MIT
 
 ---
 
-# 2. 项目规范文档
+# 2. Project Specification
 
 # CodeRisk Agent — Project Specification
 
@@ -620,7 +617,7 @@ Real CVE data retrieved from NVD:
 
 ---
 
-# 3. 架构改进方案
+# 3. Architecture Review
 
 # CodeRisk Agent — Architecture Review & Improvements
 
@@ -804,7 +801,7 @@ else:
 
 ---
 
-# 4. ROCm 优化文档
+# 4. ROCm Optimization
 
 # ROCm Optimization Documentation
 
@@ -900,7 +897,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 ---
 
-# 5. 提交清单
+# 5. Submission Checklist
 
 # Hackathon Submission Checklist
 
@@ -976,7 +973,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 ---
 
-# 6. 模块准确性分析
+# 6. Module Analysis
 
 # CodeRisk Agent — 模块准确性、可行性与优化方向分析
 
@@ -1582,9 +1579,10 @@ CodeRisk Agent 的核心价值不在单个模块的完美，而在 **多 Agent �
 
 ---
 
-# 7. 源码
+# Source Code
 
-## 7.1 main.py (231 lines)
+
+## main.py (231 lines)
 
 ```python
 """CodeRisk Agent - AI Code Quality & Risk Analyzer
@@ -1620,7 +1618,7 @@ BANNER = r"""[bold cyan]
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝
 [/]"""
 
-VERSION = "0.3.0"
+VERSION = "0.3.2"
 
 SUPPORTED_EXTENSIONS = {".c", ".h", ".py"}
 
@@ -1820,7 +1818,8 @@ if __name__ == "__main__":
 
 ```
 
-## 7.2 orchestrator.py (352 lines)
+
+## orchestrator.py (352 lines)
 
 ```python
 """Orchestrator: State Machine Pipeline
@@ -2177,7 +2176,8 @@ class Orchestrator:
 
 ```
 
-## 7.3 core/__init__.py (9 lines)
+
+## core/__init__.py (9 lines)
 
 ```python
 """CodeRisk Agent - Core Module"""
@@ -2191,7 +2191,8 @@ from core.retry import retry
 
 ```
 
-## 7.4 core/models.py (188 lines)
+
+## core/models.py (188 lines)
 
 ```python
 """CodeRisk Agent — 核心数据模型
@@ -2384,7 +2385,8 @@ def _detect_language(path: Path) -> Language:
 
 ```
 
-## 7.5 core/llm_client.py (299 lines)
+
+## core/llm_client.py (299 lines)
 
 ```python
 """CodeRisk Agent - LLM Client
@@ -2438,8 +2440,8 @@ MAX_RETRIES = 3
 RETRY_BASE_DELAY = 1.0
 
 # Qwen2.5 ChatML special tokens
-_IM_START = "<im_start>"
-_IM_END = "<im_end>"
+_IM_START = "<im|start>"
+_IM_END = "</im|end>"
 _ENDOFTEXT = "<|endoftext|>"
 
 
@@ -2688,7 +2690,8 @@ def _extract_json(text: str) -> dict:
 
 ```
 
-## 7.6 core/memory.py (229 lines)
+
+## core/memory.py (235 lines)
 
 ```python
 """CodeRisk Agent - Memory Layer
@@ -2704,6 +2707,7 @@ false positives get suppressed.
 from __future__ import annotations
 
 import hashlib
+import re
 import json
 import os
 import time
@@ -2865,17 +2869,22 @@ class MemoryLayer:
         }
 
     def _hash_risk_pattern(self, risk: Risk) -> str:
-        """Create a hash of the risk pattern for matching.
+        """Create a normalized hash of the risk pattern for matching.
 
-        Uses CWE + file extension + code pattern to identify similar risks.
+        Normalizes variable names to <VAR> and strings to <STR>
+        so that similar patterns with different variable names match.
         """
-        # Extract code snippet pattern (first 100 chars of evidence)
         code_pattern = ""
         if risk.evidence:
             code_pattern = risk.evidence[0].snippet[:100]
 
-        # Hash: CWE + language + code pattern
-        key = f"{risk.cwe_id}:{risk.language}:{code_pattern}"
+        # Normalize: replace variable names (>2 chars) with <VAR>
+        normalized = re.sub(r'\b[a-zA-Z_]\w{2,}\b', '<VAR>', code_pattern)
+        # Normalize: replace string literals with <STR>
+        normalized = re.sub(r'"[^"]*"', '<STR>', normalized)
+        normalized = re.sub(r"'[^']*'", '<STR>', normalized)
+
+        key = f"{risk.cwe_id}:{risk.language}:{normalized}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
     def _save(self):
@@ -2922,7 +2931,8 @@ class MemoryLayer:
 
 ```
 
-## 7.7 core/cve_client.py (152 lines)
+
+## core/cve_client.py (152 lines)
 
 ```python
 """CodeRisk Agent - CVE/NVD Client
@@ -3079,7 +3089,8 @@ class CVEClient:
 
 ```
 
-## 7.8 core/semgrep_runner.py (136 lines)
+
+## core/semgrep_runner.py (137 lines)
 
 ```python
 """CodeRisk Agent - Semgrep Runner
@@ -3090,6 +3101,7 @@ Wraps Semgrep CLI to scan files and convert results to Risk objects.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -3117,7 +3129,7 @@ _SEVERITY_MAP = {
 
 def run_semgrep(
     file_path: Path,
-    config: str = "p/default",
+    config: str = os.getenv("SEMGREP_RULES", "p/default"),
     timeout: int = 30,
 ) -> list[dict]:
     """Run Semgrep on a single file, return raw results."""
@@ -3209,7 +3221,7 @@ def semgrep_to_risks(
 
 def analyze_with_semgrep(
     code_file: CodeFile,
-    config: str = "p/default",
+    config: str = os.getenv("SEMGREP_RULES", "p/default"),
     risk_counter_start: int = 0,
 ) -> list[Risk]:
     """Full pipeline: run Semgrep on a file and return Risk objects."""
@@ -3220,7 +3232,8 @@ def analyze_with_semgrep(
 
 ```
 
-## 7.9 core/taint_analyzer.py (210 lines)
+
+## core/taint_analyzer.py (210 lines)
 
 ```python
 """Simple Taint Analysis Module
@@ -3435,7 +3448,8 @@ class TaintAnalyzer:
 
 ```
 
-## 7.10 core/dependency_scanner.py (289 lines)
+
+## core/dependency_scanner.py (291 lines)
 
 ```python
 """Dependency Scanner Module
@@ -3453,6 +3467,7 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+from core.retry import retry
 from rich.console import Console
 
 console = Console()
@@ -3466,6 +3481,7 @@ OSV_TIMEOUT = 10
 # ─── OSV API Client ─────────────────────────────────────────────
 
 
+@retry(max_retries=2, exceptions=(httpx.RequestError, httpx.TimeoutException))
 def _query_osv(package_name: str, version: str, ecosystem: str = "PyPI") -> list[dict]:
     """Query OSV API for vulnerabilities of a specific package version."""
     try:
@@ -3729,7 +3745,8 @@ def scan_project_dependencies(project_path: Path) -> list[dict]:
 
 ```
 
-## 7.11 core/attack_knowledge.py (227 lines)
+
+## core/attack_knowledge.py (227 lines)
 
 ```python
 """MITRE ATT&CK Knowledge Base
@@ -3961,7 +3978,8 @@ def get_compliance_references(cwe_id: str) -> dict[str, str]:
 
 ```
 
-## 7.12 core/retry.py (60 lines)
+
+## core/retry.py (60 lines)
 
 ```python
 """CodeRisk Agent - Retry Policy
@@ -4026,7 +4044,8 @@ def retry(
 
 ```
 
-## 7.13 agents/__init__.py (7 lines)
+
+## agents/__init__.py (7 lines)
 
 ```python
 """CodeRisk Agent - Agent Module"""
@@ -4038,7 +4057,8 @@ from agents.report_generator import ReportGenerator
 
 ```
 
-## 7.14 agents/static_analyzer.py (447 lines)
+
+## agents/static_analyzer.py (447 lines)
 
 ```python
 """Agent 1: Tree-sitter 静态分析器
@@ -4490,7 +4510,8 @@ class StaticAnalyzer:
 
 ```
 
-## 7.15 agents/semantic_analyzer.py (246 lines)
+
+## agents/semantic_analyzer.py (246 lines)
 
 ```python
 """Agent 2: Semantic Analyzer (LLM-driven)
@@ -4741,7 +4762,8 @@ Output JSON:
 
 ```
 
-## 7.16 agents/deep_verifier.py (291 lines)
+
+## agents/deep_verifier.py (291 lines)
 
 ```python
 """Agent 3: Deep Verifier - Triple Cross-Validation
@@ -5037,7 +5059,8 @@ Please verify these risks and find any missed vulnerabilities."""
 
 ```
 
-## 7.17 agents/report_generator.py (469 lines)
+
+## agents/report_generator.py (469 lines)
 
 ```python
 """Agent 4: Report Generator
@@ -5511,174 +5534,8 @@ class ReportGenerator:
 
 ```
 
-# 8. 测试
 
-## tests/__init__.py
-
-```python
-# CodeRisk Agent - Tests
-
-```
-
-## tests/test_static_analyzer.py
-
-```python
-"""Tests for CodeRisk Agent - Static Analyzer"""
-
-import sys
-from pathlib import Path
-
-import pytest
-
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from agents.static_analyzer import StaticAnalyzer
-from core.models import CodeFile, Language, Severity
-
-
-@pytest.fixture
-def analyzer():
-    return StaticAnalyzer()
-
-
-# ─── CWE-120: Buffer Overflow ────────────────────────────────────
-
-class TestBufferOverflow:
-    def test_detects_gets(self, analyzer):
-        """gets() should be flagged as CRITICAL (CWE-120)"""
-        code = '#include <stdio.h>\nint main() { char buf[10]; gets(buf); }'
-        f = CodeFile(path="test.c", content=code, language=Language.C)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-120" and r.severity == Severity.CRITICAL for r in risks)
-
-    def test_detects_strcpy(self, analyzer):
-        """strcpy() should be flagged as HIGH (CWE-120)"""
-        code = '#include <string.h>\nvoid f(char *s) { char b[10]; strcpy(b, s); }'
-        f = CodeFile(path="test.c", content=code, language=Language.C)
-        risks = analyzer.analyze(f)
-        assert any("strcpy" in r.title and r.severity == Severity.HIGH for r in risks)
-
-
-# ─── CWE-78: Command Injection ──────────────────────────────────
-
-class TestCommandInjection:
-    def test_detects_system_c(self, analyzer):
-        """system() in C should be flagged as HIGH (CWE-78)"""
-        code = '#include <stdlib.h>\nvoid f() { system("ls"); }'
-        f = CodeFile(path="test.c", content=code, language=Language.C)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-78" and r.severity == Severity.HIGH for r in risks)
-
-    def test_detects_os_system_python(self, analyzer):
-        """os.system() in Python should be flagged as HIGH (CWE-78)"""
-        code = 'import os\nos.system("ls")'
-        f = CodeFile(path="test.py", content=code, language=Language.PYTHON)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-78" and r.severity == Severity.HIGH for r in risks)
-
-
-# ─── CWE-95: Code Injection ─────────────────────────────────────
-
-class TestCodeInjection:
-    def test_detects_eval(self, analyzer):
-        """eval() should be flagged as CRITICAL (CWE-95)"""
-        code = 'x = eval(input())'
-        f = CodeFile(path="test.py", content=code, language=Language.PYTHON)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-95" and r.severity == Severity.CRITICAL for r in risks)
-
-    def test_detects_exec(self, analyzer):
-        """exec() should be flagged as CRITICAL (CWE-95)"""
-        code = 'exec("print(1)")'
-        f = CodeFile(path="test.py", content=code, language=Language.PYTHON)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-95" and r.severity == Severity.CRITICAL for r in risks)
-
-
-# ─── CWE-502: Deserialization ───────────────────────────────────
-
-class TestDeserialization:
-    def test_detects_pickle(self, analyzer):
-        """pickle.loads() should be flagged as CRITICAL (CWE-502)"""
-        code = 'import pickle\ndata = pickle.loads(b"abc")'
-        f = CodeFile(path="test.py", content=code, language=Language.PYTHON)
-        risks = analyzer.analyze(f)
-        assert any(r.cwe_id == "CWE-502" and r.severity == Severity.CRITICAL for r in risks)
-
-
-# ─── Safe Code ──────────────────────────────────────────────────
-
-class TestSafeCode:
-    def test_safe_c_code(self, analyzer):
-        """Safe C code should produce no critical/high risks"""
-        code = '''
-#include <stdio.h>
-int main() {
-    int x = 42;
-    printf("%d\\n", x);
-    return 0;
-}
-'''
-        f = CodeFile(path="safe.c", content=code, language=Language.C)
-        risks = analyzer.analyze(f)
-        critical = [r for r in risks if r.severity in (Severity.CRITICAL, Severity.HIGH)]
-        assert len(critical) == 0
-
-    def test_safe_python_code(self, analyzer):
-        """Safe Python code should produce no critical/high risks"""
-        code = '''
-def add(a, b):
-    return a + b
-
-result = add(1, 2)
-print(result)
-'''
-        f = CodeFile(path="safe.py", content=code, language=Language.PYTHON)
-        risks = analyzer.analyze(f)
-        critical = [r for r in risks if r.severity in (Severity.CRITICAL, Severity.HIGH)]
-        assert len(critical) == 0
-
-
-# ─── Test Case Files ────────────────────────────────────────────
-
-class TestTestCaseFiles:
-    def test_buffer_overflow_file(self, analyzer):
-        """buffer_overflow.c should have 2+ critical/high risks"""
-        path = Path(__file__).parent / "test_cases" / "buffer_overflow.c"
-        f = CodeFile.from_path(path)
-        risks = analyzer.analyze(f)
-        high_risks = [r for r in risks if r.severity in (Severity.CRITICAL, Severity.HIGH)]
-        assert len(high_risks) >= 2
-
-    def test_command_injection_file(self, analyzer):
-        """command_injection.c should have 2+ high risks"""
-        path = Path(__file__).parent / "test_cases" / "command_injection.c"
-        f = CodeFile.from_path(path)
-        risks = analyzer.analyze(f)
-        high_risks = [r for r in risks if r.severity in (Severity.CRITICAL, Severity.HIGH)]
-        assert len(high_risks) >= 2
-
-    def test_code_injection_file(self, analyzer):
-        """code_injection.py should have 3+ critical risks"""
-        path = Path(__file__).parent / "test_cases" / "code_injection.py"
-        f = CodeFile.from_path(path)
-        risks = analyzer.analyze(f)
-        critical = [r for r in risks if r.severity == Severity.CRITICAL]
-        assert len(critical) >= 3
-
-    def test_memory_issues_file(self, analyzer):
-        """memory_issues.c should detect malloc and double free"""
-        path = Path(__file__).parent / "test_cases" / "memory_issues.c"
-        f = CodeFile.from_path(path)
-        risks = analyzer.analyze(f)
-        assert len(risks) >= 1
-
-```
-
-# 9. 配置文件
-
-## pyproject.toml
+# pyproject.toml
 
 ```
 [project]
@@ -5723,7 +5580,8 @@ testpaths = ["tests"]
 
 ```
 
-## .env.example
+
+# .env.example
 
 ```
 # CodeRisk Agent - Environment Configuration
@@ -5749,332 +5607,3 @@ SEMGREP_RULES=p/default
 
 ```
 
-## .gitignore
-
-```
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-.eggs/
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment
-.env
-.env.local
-
-# Models
-models/*.gguf
-models/*.bin
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Source dumps (versioned snapshots)
-CodeRisk-Agent-*-Source.md
-CodeRisk-Agent-*-源码.md
-CodeRisk-Agent-源码.md
-
-# Coverage
-htmlcov/
-.coverage
-
-```
-
-# 10. 脚本
-
-## scripts/run_demo.sh
-
-```bash
-#!/bin/bash
-# scripts/run_demo.sh - CodeRisk Agent Demo Script
-# For AMD AI DevMaster Hackathon Track 2
-
-set -e
-
-echo "=========================================="
-echo "  CodeRisk Agent - Demo"
-echo "  AMD AI DevMaster Hackathon Track 2"
-echo "=========================================="
-echo ""
-
-# 1. Environment Check
-echo "[1/5] Environment Check"
-echo "----------------------------------------"
-if command -v rocm-smi &> /dev/null; then
-    echo "ROCm detected:"
-    rocm-smi --showproductname 2>/dev/null | head -3 || echo "  (rocm-smi available but limited in container)"
-else
-    echo "ROCm not available (CPU-only mode)"
-fi
-echo "Python: $(python3 --version)"
-echo ""
-
-# 2. Quick Demo (Static Analysis)
-echo "[2/5] Static Analysis Demo (no LLM)"
-echo "----------------------------------------"
-cd "$(dirname "$0")/.."
-python3 main.py demo
-echo ""
-
-# 3. Full Analysis on Test Cases
-echo "[3/5] Full Analysis on Test Cases"
-echo "----------------------------------------"
-python3 main.py analyze tests/test_cases/ --no-ai --output terminal
-echo ""
-
-# 4. Version Info
-echo "[4/5] System Info"
-echo "----------------------------------------"
-python3 main.py info
-echo ""
-
-# 5. Summary
-echo "[5/5] Summary"
-echo "----------------------------------------"
-echo "CodeRisk Agent features:"
-echo "  - Agent 1: Static Analyzer (regex + Tree-sitter)"
-echo "  - Agent 2: Semantic Analyzer (LLM-driven)"
-echo "  - Agent 3: Deep Verifier (triple cross-validation + memory)"
-echo "  - Agent 4: Report Generator (JSON/Markdown/Rich)"
-echo "  - Orchestrator: State machine pipeline"
-echo "  - Memory Layer: Learn from history"
-echo "  - CVE Client: NVD database lookup"
-echo ""
-echo "Demo complete!"
-
-```
-
-# 11. Demo 视频脚本
-
-# CodeRisk Agent — Demo Video Script v4
-
-> Duration: 3 min 35 sec (215s) + 25s buffer = 4 min max
-> Format: Terminal recording + narration
-> Language: English
-> Version: v4 (2026-07-19) — Resolves all5 remaining risks from Kimi review
-
----
-
-## Scene 1: The Problem (20s)
-
-**[Screen: XZ Utils news headline]**
-
-> "In 2024, the XZ Utils backdoor nearly compromised every Linux distribution worldwide. One maintainer. A few lines of malicious code. The entire software supply chain almost collapsed."
-
-**[Screen: Terminal with CodeRisk Agent logo]**
-
-> "CodeRisk Agent catches these risks before code ships — and it runs entirely on your local AMD GPU. Code never leaves your machine."
-
----
-
-## Scene 2: Quick Demo — One Command, Full Analysis (75s)
-
-### Part A: The Command (5s)
-
-**[Screen: Full-screen terminal, dark theme, 18pt font]**
-
-```bash
-python3 main.py analyze tests/test_cases/ --output terminal
-```
-
-> "One command. Let me walk you through what happens."
-
-### Part B: Phase 1-2 — Static Analysis (15s)
-
-**[Screen: Terminal showing Phase1 and Phase2 output]**
-
-> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks across our test suite of5 vulnerability samples — both C and Python files."
-
-> "Phase 2: Semgrep integration — industry-standard rules from the open-source community."
-
-### Part C: Why Better Than Semgrep (15s)
-
-**[Screen: Split view — left: Semgrep output, right: CodeRisk output]**
-
-> "But here's the difference. Semgrep sees `strcpy` and flags it — it needs human-written rules for context. CodeRisk Agent uses LLM to automatically understand the context — the input is already validated. Risk downgraded to LOW."
-
-> "And Agent 3's self-reflection found something Semgrep completely missed: a `malloc()` without NULL check at line 58. That's a real vulnerability that static analysis alone would miss."
-
-### Part D: Phase 3-4 — AI Analysis (20s)
-
-**[Screen: Terminal showing LLM calls and Agent3 output]**
-
-> "Phase 3: The LLM reads the code like a human auditor. It generates attack scenarios — 'An attacker can inject arbitrary commands through the host parameter.'"
-
-> "Phase 4: Deep verification. Triple cross-validation — tool confirmation, CWE knowledge base, and live CVE lookup from the National Vulnerability Database."
-
-### Part E: The Report (20s)
-
-**[Screen: Show risk table with CWE links, then zoom into one risk]**
-
-> "25 vulnerabilities detected across C and Python files. Every one has evidence, CWE classification, and a fix suggestion."
-
-**[Screen: Zoom into RISK-014 — show before/after code]**
-
-> "Look at this one. `strcpy(dest, src)` — buffer overflow. The fix? `strncpy` with bounds checking. Concrete, actionable, copy-paste ready."
-
----
-
-## Scene 3: Architecture Deep Dive (60s)
-
-### Part A: Overview (10s)
-
-**[Screen: Simple pipeline diagram — just Agent1 → Agent2 → Agent3 → Agent4, left to right]**
-
-> "Four specialized agents in an orchestrated pipeline. Let me show you the key differentiators."
-
-### Part B: Agent 2 — Semantic Analysis (10s)
-
-**[Screen: Highlight Agent2, show LLM inference output]**
-
-> "Agent 2 runs Qwen2.5-Coder-7B on the AMD GPU. It understands code logic, not just patterns. It can find vulnerabilities that no regex will ever catch."
-
-### Part C: Agent 3 — Deep Verification (25s)
-
-**[Screen: Animate — first show tool confirmation, then add CWE layer, then add CVE layer]**
-
-> "Agent 3 is where the magic happens. Triple cross-validation."
-
-> "First: tool confirmation — did static analysis and LLM agree?"
-
-**[Screen: Add CWE knowledge base layer]**
-
-> "Second: CWE knowledge base — are there known exploits?"
-
-**[Screen: Add NVD/CVE layer]**
-
-> "Third: live NVD query — real CVE numbers, real CVSS scores."
-
-**[Screen: Show Agent3 finding missed risks]**
-
-> "And the self-reflection loop. Agent 3 asks: 'Did I miss anything?' In our tests, it found 4 vulnerabilities the previous agents missed. And it automatically suppressed 1 known false positive."
-
-### Part D: Memory Layer (15s)
-
-**[Screen: Show memory recall in terminal output]**
-
-> "And it learns. Watch this — the first run, the system builds a memory of confirmed patterns."
-
-**[Screen: Show second run with memory recall]**
-
-> "Second run on similar code. 'Memory: pattern found, using cached result.' Detection is faster. False positives are suppressed. The system gets smarter with every scan."
-
----
-
-## Scene 4: GPU Performance (45s)
-
-### Part A: Environment (10s)
-
-**[Screen: Split view — left: terminal, right: rocm-smi]**
-
-> "This is running on an AMD Radeon RX 7900 XTX with ROCm 7.2.4. The model is loaded into GPU memory — every analysis benefits from hardware acceleration."
-
-### Part B: Performance Data (20s)
-
-**[Screen: Performance comparison]**
-
-> "Let me show you the numbers."
-
-| Mode | Speed |
-|------|-------|
-| CPU only | 6.8 tokens/s |
-| AMD GPU (ROCm HIP) | 105 tokens/s |
-
-> "Fifteen times faster with GPU acceleration. No API calls. No cloud dependency. No data leaving your machine."
-
-### Part C: ROCm Build (15s)
-
-**[Screen: Show terminal with build success message]**
-
-> "Getting HIP working in the Radeon Cloud container took some detective work. We found the right build configuration for ROCm 7.2.4, and GPU inference worked immediately."
-
-> "This is what local AI looks like. Real performance. Real privacy. Real security."
-
----
-
-## Scene 5: Closing (15s)
-
-**[Screen: Architecture diagram + key stats]**
-
-> "CodeRisk Agent. Four AI agents. Orchestrated pipeline. Memory learning. Live CVE validation. All running on your local AMD GPU."
-
-**[Screen: GitHub repo + team name]**
-
-> "github.com/a9320/code-risk-agent | Team CodeRisk | AMD AI DevMaster Hackathon 2026"
-
----
-
-## Appendix: Production Notes
-
-### Recording Checklist
-- [ ] Terminal font: 18pt+, dark theme (VS Code Dark or similar)
-- [ ] Pre-load model before recording (avoid30s startup wait)
-- [ ] rocm-smi running in background (tmux split pane)
-- [ ] Practice narration2-3 times
-- [ ] Background music: subtle, tech-focused, not distracting
-- [ ] Record Scene2 and Scene3 first (don't depend on GPU)
-- [ ] Record Scene4 last (depends on GPU availability)
-
-### GPU Fallback Plans
-
-**Plan A: ROCm HIP available (best case)**
-- Split screen: terminal + rocm-smi
-- Show real-time inference with GPU utilization
-- Performance data:105 t/s
-
-**Plan B: Only Vulkan available**
-- Show radeontop or vulkaninfo
-- Performance data:85 t/s
-- "We evaluated three backends. Vulkan gives85 tokens per second — 5.6x faster than CPU. ROCm HIP pushes that to105 t/s. The architecture supports both."
-
-**Plan C: CPU only (worst case)**
-- Be honest: "In this container environment, GPU access is limited. But the architecture is designed for local GPU inference."
-- Show pre-recorded benchmark data as overlay
-- "The code is ready. The GPU is waiting."
-
-### Key Moments to Highlight
-1. **XZ Utils story** — establishes stakes in20 seconds
-2. **Semgrep vs CodeRisk comparison** — shows differentiation
-3. **Agent3 finding missed risks** — demonstrates intelligence
-4. **Before/after code fix** — shows actionable output
-5. **Memory recall** — demonstrates learning
-6. **15x GPU speedup** — tangible performance benefit
-
-### Time Budget
-
-| Scene | Target | Content |
-|-------|--------|---------|
-| 1. Problem | 20s | XZ Utils + local AI pitch |
-| 2. Demo | 75s | Command + phases + comparison + report |
-| 3. Architecture | 60s | Agent2 + Agent3 + memory |
-| 4. Performance | 45s | rocm-smi + numbers + build story |
-| 5. Closing | 15s | Summary + repo |
-| **Total** | **215s** | **3:35** |
-| Buffer | 25s | Transitions, pauses |
-| **Max** | **240s** | **4:00** |
-
-### v4 Changelog (from v3)
-1. ✅ ROCm Build story simplified — removed cmake flag details, kept "found the right build configuration"
-2. ✅ "25 vulnerabilities" contextualized — added "across C and Python files" and "test suite of5 vulnerability samples"
-3. ✅ Architecture diagram uses step-by-step animation — start with simple pipeline, layer by layer add CWE/CVE
-4. ✅ Multi-language support mentioned — "both C and Python files" in Scene 2
-5. ✅ One-click fix noted as future work — "copy-paste ready" in current version, --fix parameter planned
