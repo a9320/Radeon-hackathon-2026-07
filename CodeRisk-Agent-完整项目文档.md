@@ -7,7 +7,7 @@
 
 ---
 
-# 1. 英文 README (README.md)
+# 1. 英文 README
 
 # CodeRisk Agent 🛡️
 
@@ -188,6 +188,9 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 ### Performance
 
+> All performance data was measured on our Radeon Cloud instance
+> (RX 7900 XTX, ROCm 7.2.4, HIP backend).
+
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
@@ -294,6 +297,13 @@ MIT
 
 ---
 
+## Known Limitations
+
+- **Radeon Cloud container:** HIP backend requires `GGML_HIP=ON` (not the older `GGML_HIPBLAS=ON`). On bare-metal systems, both flags may work.
+- **Language support:** Currently C and Python only. Java, Go, Rust planned for future releases.
+- **Semgrep integration:** Requires Semgrep CLI installed separately. The system works without it but loses one analysis layer.
+- **Memory learning:** Requires 2+ scans to activate false positive suppression. Single-run results may include known false positives.
+
 ## Acknowledgments
 
 - [Qwen](https://github.com/QwenLM) for the excellent code model
@@ -304,7 +314,7 @@ MIT
 
 ---
 
-# 2. 项目规范文档 (docs/project-specification.md)
+# 2. 项目规范文档
 
 # CodeRisk Agent — Project Specification
 
@@ -479,8 +489,8 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 | Component | Value |
 |-----------|-------|
 | GPU | AMD Radeon RX 7900 XTX (gfx1100) |
-| ROCm |7.2.4 |
-| HIP |7.2.53211 |
+| ROCm | 7.2.4 |
+| HIP | 7.2.53211 |
 | Platform | Radeon Cloud container |
 
 ###5.2 Key Discovery
@@ -502,10 +512,13 @@ cmake --build build --config Release -j$(nproc)
 
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
-| Token generation |6.8 t/s |105 t/s | **15.4x** |
-| Prompt processing | — |628 t/s | — |
-| VRAM usage | — |24% (~5GB) | — |
-| GPU temperature | — |26°C | — |
+| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
+| Prompt processing | — | 628 t/s | — |
+| VRAM usage | — | 24% (~5 GB) | — |
+| GPU temperature | — | 26°C | — |
+
+> All performance data was measured on our Radeon Cloud instance
+> (RX 7900 XTX, ROCm 7.2.4, HIP backend).
 
 ###5.5 Optimization Strategies
 
@@ -603,7 +616,7 @@ Real CVE data retrieved from NVD:
 
 ---
 
-# 3. 架构改进方案 (docs/architecture-review.md)
+# 3. 架构改进方案
 
 # CodeRisk Agent — Architecture Review & Improvements
 
@@ -632,10 +645,15 @@ Real CVE data retrieved from NVD:
 
 ---
 
-## Improvement 1: Parallel Agent Execution
+## Improvement 1: Parallel Agent Execution (Planned)
 
 **Current:** Agent 1 → Agent 2 (sequential, per file)
-**Proposed:** Agent 1 (all files) ‖ Agent 2 (per file, parallel)
+**Planned:** Agent 1 (all files) ‖ Agent 2 (per file, parallel)
+
+> Note: Agent 2 depends on Agent 1's output for validation. The parallelization
+> strategy is to run Agent 1 on all files first, then run Agent 2 on all files
+> in parallel (not per-file sequential). This requires architectural changes
+> to the Orchestrator and is planned for a future release.
 
 ```python
 # Current (sequential):
@@ -782,7 +800,7 @@ else:
 
 ---
 
-# 4. ROCm 优化文档 (docs/rocm-optimization.md)
+# 4. ROCm 优化文档
 
 # ROCm Optimization Documentation
 
@@ -795,21 +813,21 @@ else:
 | Item | Status | Notes |
 |------|--------|-------|
 | GPU | RX 7900 XTX (gfx1100) | Radeon Cloud container |
-| ROCm | 6.16.13 | Fully configured |
+| ROCm | 7.2.4 | Fully configured |
 | rocm-smi | Available | Can monitor GPU status |
-| HIP Backend | Not available | Container virtualization limitation |
+| HIP Backend | ✅ Available | GGML_HIP=ON flag |
 | CPU Inference | 6.8 t/s | Fallback mode |
 | Shared API | Qwen3.6-35B-A3B | Available for testing |
 
-### Why HIP Backend Is Unavailable
+### HIP Backend Status
 
-The Radeon Cloud container environment uses virtualization that prevents
-llama.cpp's HIP backend from directly accessing the GPU. The ROCm runtime
-is installed and `rocm-smi` works, but the HIP compute layer cannot be
-initialized inside the container.
+Initial attempts with `GGML_HIPBLAS=ON` (the 2024-2025 flag) failed.
+The correct flag for 2026 is `GGML_HIP=ON`. After using the correct flag,
+HIP compiled successfully and GPU inference is fully operational:
 
-This is a known limitation of the shared Radeon Cloud environment.
-On bare-metal AMD GPU systems, the full optimization stack would be available.
+- Token generation: 105 t/s (measured on Radeon Cloud, RX 7900 XTX)
+- Prompt processing: 628 t/s
+- VRAM usage: 24% (~5 GB)
 
 ---
 
@@ -845,28 +863,17 @@ On bare-metal AMD GPU systems, the full optimization stack would be available.
 
 ## Performance Data (To Be Collected)
 
-### Benchmark Plan
-
-```bash
-# 1. CPU-only baseline
-time python3 main.py analyze tests/test_cases/ --no-ai
-
-# 2. GPU inference (when HIP available)
-./llama-server -m qwen2.5-coder-7b-instruct-q4_k_m.gguf -ngl 999 -fa 1
-# Then: python3 main.py analyze tests/test_cases/
-
-# 3. rocm-smi monitoring
-watch -n 1 rocm-smi
-```
-
-### Expected Results (Based on Literature)
+### Actual Benchmark Results (Measured on Radeon Cloud)
 
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
-| Model Load | ~15s | ~3s | 5x |
-| Inference (per file) | ~8s | ~1.2s | 6.7x |
-| Throughput | 6.8 t/s | 110 t/s | 16x |
-| GPU Utilization | 0% | 85-95% | - |
+| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
+| Prompt processing | — | 628 t/s | — |
+| VRAM usage | — | 24% (~5 GB) | — |
+| GPU temperature | — | 26°C | — |
+
+> All performance data was measured on our Radeon Cloud instance
+> (RX 7900 XTX, ROCm 7.2.4, HIP backend).
 
 ---
 
@@ -889,7 +896,7 @@ watch -n 1 rocm-smi
 
 ---
 
-# 5. 提交清单 (docs/submission-checklist.md)
+# 5. 提交清单
 
 # Hackathon Submission Checklist
 
@@ -4671,8 +4678,6 @@ class TestTestCaseFiles:
 
 ```
 
----
-
 # 8. 配置文件
 
 ## pyproject.toml
@@ -4796,8 +4801,6 @@ htmlcov/
 
 ```
 
----
-
 # 9. 脚本
 
 ## scripts/run_demo.sh
@@ -4862,8 +4865,6 @@ echo "Demo complete!"
 
 ```
 
----
-
 # 10. Demo 视频脚本
 
 # CodeRisk Agent — Demo Video Script v4
@@ -4911,7 +4912,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Split view — left: Semgrep output, right: CodeRisk output]**
 
-> "But here's the difference. Semgrep sees `strcpy` and flags it. CodeRisk Agent looks at the context — the input is already validated. Risk downgraded to LOW."
+> "But here's the difference. Semgrep sees `strcpy` and flags it — it needs human-written rules for context. CodeRisk Agent uses LLM to automatically understand the context — the input is already validated. Risk downgraded to LOW."
 
 > "And Agent 3's self-reflection found something Semgrep completely missed: a `malloc()` without NULL check at line 58. That's a real vulnerability that static analysis alone would miss."
 
