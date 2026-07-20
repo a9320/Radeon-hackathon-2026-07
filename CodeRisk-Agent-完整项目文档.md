@@ -1213,7 +1213,7 @@ if __name__ == "__main__":
 
 ```
 
-## 6.2 orchestrator.py (285 lines)
+## 6.2 orchestrator.py (333 lines)
 
 ```python
 """Orchestrator: State Machine Pipeline
@@ -1227,7 +1227,9 @@ Coordinates all 4 agents with memory layer, CVE client, and Semgrep.
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
@@ -1251,6 +1253,8 @@ from core.models import (
 console = Console()
 
 MIN_LINES_FOR_LLM = 20
+MAX_STATIC_WORKERS = 4   # CPU-bound parallelism
+MAX_SEMANTIC_WORKERS = 2  # GPU-bound, limited concurrency
 
 
 class State(str, Enum):
@@ -1309,25 +1313,30 @@ class Orchestrator:
         self.state = State.ANALYZE
         all_risks = []
 
-        # Phase 1: Static analysis
+        # Phase 1: Static analysis (PARALLEL — CPU-bound)
         t0 = time.monotonic()
-        console.print("[bold]  Phase 1: Static analysis (Agent 1)[/]")
-        for f in valid_files:
-            risks = self.static_analyzer.analyze(f)
-            all_risks.extend(risks)
-            if risks:
-                console.print(f"  [red]  {f.path}: {len(risks)} risks[/]")
-            else:
-                console.print(f"  [green]  {f.path}: clean[/]")
+        console.print("[bold]  Phase 1: Static analysis (Agent 1, parallel)[/]")
+        with ThreadPoolExecutor(max_workers=MAX_STATIC_WORKERS) as pool:
+            future_map = {pool.submit(self.static_analyzer.analyze, f): f for f in valid_files}
+            for future in as_completed(future_map):
+                f = future_map[future]
+                try:
+                    risks = future.result()
+                    all_risks.extend(risks)
+                    if risks:
+                        console.print(f"  [red]  {f.path}: {len(risks)} risks[/]")
+                    else:
+                        console.print(f"  [green]  {f.path}: clean[/]")
+                except Exception as e:
+                    console.print(f"  [yellow]  {f.path}: error — {e}[/]")
         perf_timings['agent1_static'] = (time.monotonic() - t0) * 1000
 
-        # Phase 1.5: Dependency scanning
+        # Phase 1.5: Dependency scanning (smart root detection)
         t0 = time.monotonic()
         console.print("\n[bold]  Phase 1.5: Dependency scanning[/]")
         try:
-            from pathlib import Path
-            # Scan parent directory of first file for project root
-            project_root = Path(valid_files[0].path).parent
+            project_root = self._find_project_root(valid_files)
+            console.print(f"  [dim]  Project root: {project_root}[/]")
             dep_findings = scan_project_dependencies(project_root)
             if dep_findings:
                 console.print(f"  [red]  Dependencies: {len(dep_findings)} vulnerable packages[/]")
@@ -1359,26 +1368,21 @@ class Orchestrator:
             console.print(f"[dim]  Dependency scan skipped: {e}[/]")
         perf_timings['dep_scan'] = (time.monotonic() - t0) * 1000
 
-        # Phase 2: Semgrep
+        # Phase 2 + 2.5: Semgrep + Taint (PARALLEL — both CPU-bound)
         t0 = time.monotonic()
-        console.print("\n[bold]  Phase 2: Semgrep analysis[/]")
-        try:
-            from core.semgrep_runner import analyze_with_semgrep
-            for f in valid_files:
-                semgrep_risks = analyze_with_semgrep(
-                    f, config=request.rules[0], risk_counter_start=len(all_risks)
-                )
-                if semgrep_risks:
-                    console.print(f"  [red]  Semgrep {f.path}: {len(semgrep_risks)} risks[/]")
-                    all_risks.extend(semgrep_risks)
-        except Exception as e:
-            console.print(f"[dim]  Semgrep skipped: {e}[/]")
-        perf_timings['semgrep'] = (time.monotonic() - t0) * 1000
+        console.print("\n[bold]  Phase 2: Semgrep + Taint analysis (parallel)[/]")
+        semgrep_risks_all: list = []
+        taint_risks_all: list = []
 
-        # Phase 2.5: Taint analysis (data flow tracking)
-        t0 = time.monotonic()
-        console.print("\n[bold]  Phase 2.5: Taint analysis (data flow)[/]")
-        for f in valid_files:
+        def _run_semgrep(f: CodeFile):
+            try:
+                from core.semgrep_runner import analyze_with_semgrep
+                return analyze_with_semgrep(f, config=request.rules[0], risk_counter_start=0)
+            except Exception as e:
+                console.print(f"[dim]  Semgrep skipped for {f.path}: {e}[/]")
+                return []
+
+        def _run_taint(f: CodeFile):
             try:
                 if f.language.value == "c":
                     flows = self.taint.analyze_c(f.content, str(f.path))
@@ -1386,36 +1390,60 @@ class Orchestrator:
                     flows = self.taint.analyze_python(f.content, str(f.path))
                 else:
                     flows = []
-                if flows:
-                    console.print(f"  [red]  Taint {f.path}: {len(flows)} data flows[/]")
-                    for flow in flows:
-                        from core.models import Confidence, Evidence, Language, Risk, Severity
-                        sev = Severity(flow.severity) if flow.severity in [s.value for s in Severity] else Severity.MEDIUM
-                        all_risks.append(Risk(
-                            id=f"RISK-{len(all_risks)+1:03d}",
-                            title=f"Taint: {flow.description[:60]}",
-                            description=flow.description,
-                            severity=sev,
-                            confidence=Confidence.HIGH if flow.confidence == "high" else Confidence.MEDIUM,
-                            cwe_id=flow.cwe_id,
-                            language=f.language,
-                            file_path=f.path,
-                            line_start=flow.sink_line,
-                            line_end=flow.sink_line,
-                            evidence=[Evidence(
-                                source="taint_analysis",
-                                snippet=f"{flow.source} -> {flow.sink}",
-                                line_start=flow.source_line,
-                                line_end=flow.sink_line,
-                                reasoning=f"Data flow: {flow.source} (line {flow.source_line}) -> {flow.sink} (line {flow.sink_line})",
-                            )],
-                            suggestion=flow.suggestion,
-                        ))
-                else:
-                    console.print(f"  [green]  Taint {f.path}: clean[/]")
+                return (f, flows)
             except Exception as e:
-                console.print(f"[dim]  Taint analysis skipped for {f.path}: {e}[/]")
-        perf_timings['taint'] = (time.monotonic() - t0) * 1000
+                console.print(f"[dim]  Taint skipped for {f.path}: {e}[/]")
+                return (f, [])
+
+        with ThreadPoolExecutor(max_workers=MAX_STATIC_WORKERS) as pool:
+            semgrep_futures = {pool.submit(_run_semgrep, f): f for f in valid_files}
+            taint_futures = {pool.submit(_run_taint, f): f for f in valid_files}
+
+            for future in as_completed(semgrep_futures):
+                f = semgrep_futures[future]
+                try:
+                    risks = future.result()
+                    if risks:
+                        console.print(f"  [red]  Semgrep {f.path}: {len(risks)} risks[/]")
+                        semgrep_risks_all.extend(risks)
+                except Exception:
+                    pass
+
+            for future in as_completed(taint_futures):
+                f = taint_futures[future]
+                try:
+                    _, flows = future.result()
+                    if flows:
+                        console.print(f"  [red]  Taint {f.path}: {len(flows)} data flows[/]")
+                        for flow in flows:
+                            from core.models import Confidence, Evidence, Language, Risk, Severity
+                            sev = Severity(flow.severity) if flow.severity in [s.value for s in Severity] else Severity.MEDIUM
+                            taint_risks_all.append(Risk(
+                                id=f"RISK-{len(all_risks) + len(semgrep_risks_all) + len(taint_risks_all) + 1:03d}",
+                                title=f"Taint: {flow.description[:60]}",
+                                description=flow.description,
+                                severity=sev,
+                                confidence=Confidence.HIGH if flow.confidence == "high" else Confidence.MEDIUM,
+                                cwe_id=flow.cwe_id,
+                                language=f.language,
+                                file_path=f.path,
+                                line_start=flow.sink_line,
+                                line_end=flow.sink_line,
+                                evidence=[Evidence(
+                                    source="taint_analysis",
+                                    snippet=f"{flow.source} -> {flow.sink}",
+                                    line_start=flow.source_line,
+                                    line_end=flow.sink_line,
+                                    reasoning=f"Data flow: {flow.source} (line {flow.source_line}) -> {flow.sink} (line {flow.sink_line})",
+                                )],
+                                suggestion=flow.suggestion,
+                            ))
+                except Exception:
+                    pass
+
+        all_risks.extend(semgrep_risks_all)
+        all_risks.extend(taint_risks_all)
+        perf_timings['semgrep_taint'] = (time.monotonic() - t0) * 1000
 
         # Phase 3: LLM semantic analysis
         if request.enable_ai and self.semantic_analyzer:
@@ -1496,6 +1524,26 @@ class Orchestrator:
                 continue
             valid.append(f)
         return valid
+
+    def _find_project_root(self, files: list[CodeFile]) -> Path:
+        """Walk up directory tree to find project root."""
+        markers = [
+            "requirements.txt", "setup.py", "pyproject.toml",
+            "Cargo.toml", "Makefile", "CMakeLists.txt",
+            "package.json", "go.mod", "pom.xml",
+        ]
+        start = Path(files[0].path).resolve()
+        current = start.parent if start.is_file() else start
+
+        for _ in range(10):
+            if any((current / m).exists() for m in markers):
+                return current
+            parent = current.parent
+            if parent == current:
+                break
+            current = parent
+
+        return Path(files[0].path).parent
 
     @property
     def current_state(self) -> str:
@@ -4062,7 +4110,7 @@ Output JSON:
 
 ```
 
-## 6.16 agents/deep_verifier.py (275 lines)
+## 6.16 agents/deep_verifier.py (291 lines)
 
 ```python
 """Agent 3: Deep Verifier - Triple Cross-Validation
@@ -4142,10 +4190,12 @@ class DeepVerifier:
         llm_client: Optional[LLMClient] = None,
         memory: Optional[MemoryLayer] = None,
         cve_client: Optional[CVEClient] = None,
+        max_reflection_rounds: int = 2,
     ):
         self.llm = llm_client
         self.memory = memory or MemoryLayer()
         self.cve = cve_client or CVEClient()
+        self.max_reflection_rounds = max_reflection_rounds
 
     def verify_batch(
         self,
@@ -4182,16 +4232,30 @@ class DeepVerifier:
         if suppressed > 0:
             console.print(f"  [dim]  Suppressed {suppressed} known false positives[/]")
 
-        # Self-reflection: ask LLM to find missed risks
+        # Self-reflection: ask LLM to find missed risks (ITERATIVE)
         if self.llm:
             for f in files:
                 file_risks = [r for r in verified_risks if r.file_path == f.path]
-                missed = self._reflect_on_file(f, file_risks)
-                if missed:
+                all_new_risks: list[Risk] = []
+                current_risks = list(file_risks)
+
+                for round_num in range(self.max_reflection_rounds):
+                    missed = self._reflect_on_file(f, current_risks)
+                    if not missed:
+                        if round_num > 0:
+                            console.print(
+                                f"  [dim]  Reflection converged after {round_num + 1} rounds[/]"
+                            )
+                        break
+
                     console.print(
-                        f"  [yellow]  Agent 3 found {len(missed)} missed risks in {f.path}[/]"
+                        f"  [yellow]  Agent 3 round {round_num + 1}: "
+                        f"found {len(missed)} more risks in {f.path}[/]"
                     )
-                    verified_risks.extend(missed)
+                    all_new_risks.extend(missed)
+                    current_risks = current_risks + missed
+
+                verified_risks.extend(all_new_risks)
 
         return verified_risks
 
