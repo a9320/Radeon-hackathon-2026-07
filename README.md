@@ -28,6 +28,9 @@ CodeRisk Agent solves this: **deep AI analysis running 100% locally on AMD Radeo
 
 ## Architecture
 
+![Architecture Diagram](docs/architecture-diagram.png)
+
+
 ```
 User uploads code
         ↓
