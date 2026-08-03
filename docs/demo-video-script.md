@@ -176,8 +176,8 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo
-- Performance data:85 t/s
-- "We evaluated three backends. Vulkan gives85 tokens per second — 5.6x faster than CPU. ROCm HIP pushes that to105 t/s. The architecture supports both."
+- Note: Vulkan backend was not benchmarked; ROCm HIP is the primary backend
+- "We focused on ROCm HIP for GPU acceleration. The architecture could support Vulkan as a fallback, but performance was not measured."
 
 **Plan C: CPU only (worst case)**
 - Be honest: "In this container environment, GPU access is limited. But the architecture is designed for local GPU inference."
@@ -207,7 +207,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### v4 Changelog (from v3)
 1. ✅ ROCm Build story simplified — removed cmake flag details, kept "found the right build configuration"
-2. ✅ "25 vulnerabilities" contextualized — added "across C and Python files" and "test suite of5 vulnerability samples"
+2. ✅ "47 vulnerabilities" contextualized — added "across C and Python files" and "test suite of5 vulnerability samples"
 3. ✅ Architecture diagram uses step-by-step animation — start with simple pipeline, layer by layer add CWE/CVE
 4. ✅ Multi-language support mentioned — "both C and Python files" in Scene 2
 5. ✅ One-click fix noted as future work — "copy-paste ready" in current version, --fix parameter planned

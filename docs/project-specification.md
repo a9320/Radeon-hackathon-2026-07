@@ -107,7 +107,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ###4.1 Multi-Language Static Analysis
 
-- **C/C++:** Buffer overflow (CWE-120), format string (CWE-134), double free (CWE-415), null pointer (CWE-476), command injection (CWE-78)
+- **C/C++:** Buffer overflow (CWE-120), format string (CWE-134), double free (CWE-415), null pointer (CWE-476), command injection (CWE-78), external control of file name (CWE-73), reachable assertion (CWE-617)
 - **Python:** Code injection (CWE-95), deserialization (CWE-502), command injection (CWE-78), SQL injection (CWE-89)
 - **Detection methods:** Regex patterns + Semgrep rules
 
