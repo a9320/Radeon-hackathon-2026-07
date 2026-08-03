@@ -1,6 +1,6 @@
 # CodeRisk Agent — Architecture Review & Improvements
 
-> Based on E2E test (2026-07-19): 5 files, 25 risks, 18 min
+> Based on E2E test (2026-07-19): 5 files, 47-48 risks, 18 min
 > Review date: 2026-07-20
 
 ---
@@ -10,7 +10,7 @@
 ### What Worked Well ✅
 - All 4 agents executed successfully
 - Memory layer recalled 17 patterns
-- CVE client queried NVD successfully
+- CVE client queried local SQLite database successfully
 - Agent 3 found 4 missed risks + suppressed 1 false positive
 - GPU inference at 105 t/s (15.4× vs CPU)
 
@@ -25,10 +25,10 @@
 
 ---
 
-## Improvement 1: Parallel Agent Execution (Planned)
+## Improvement 1: Parallel Agent Execution (Implemented)
 
 **Current:** Agent 1 → Agent 2 (sequential, per file)
-**Planned:** Agent 1 (all files) ‖ Agent 2 (per file, parallel)
+**Implemented:** Agent 1 (all files) ‖ Agent 2 (per file, parallel)
 
 > Note: Agent 2 depends on Agent 1's output for validation. The parallelization
 > strategy is to run Agent 1 on all files first, then run Agent 2 on all files
@@ -175,4 +175,4 @@ else:
 
 ---
 
-*Generated: 2026-07-20 | CodeRisk Agent v0.3.2*
+*Generated: 2026-07-20 | CodeRisk Agent v1.0*

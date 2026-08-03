@@ -2,7 +2,7 @@
 
 > AMD AI DevMaster Hackathon | Track 2: Agentic AI
 > Team: Yang Weike (Solo Developer)
-> Version: 1.0 | Date: 2026-07-19
+> Version: 1.0 | Date: 2026-08-03
 
 ---
 
@@ -14,7 +14,7 @@
 - Multi-Agent architecture with4 specialized agents + orchestrator
 - Triple cross-validation with self-reflection loop
 - Dual memory system (correct patterns + false positive suppression)
-- Real-time CVE/NVD database integration
+- Local CVE database (pre-downloaded from NVD)
 - Full local execution on AMD GPU — code never leaves the machine
 
 ---
@@ -133,7 +133,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 **Strategy3: CVE Database**
 - Local SQLite database lookup
-- CVSS score retrieval
+- CVSS score from local SQLite database
 - Historical exploit data
 
 **Self-Reflection Loop:**
@@ -232,7 +232,7 @@ cmake --build build --config Release -j$(nproc)
 | Memory Layer | ✅ |17 patterns recalled |
 | CVE Client | ✅ | Local SQLite queries successful |
 
-**Total:**25 risks detected in18 minutes (including GPU inference)
+**Total:**47-48 risks detected in18 minutes (including GPU inference)
 
 ###6.3 CVE Validation
 
@@ -269,7 +269,6 @@ Real CVE data retrieved from NVD:
 | ROCm Optimization Docs | docs/rocm-optimization.md |
 | Demo Video Script | docs/demo-video-script.md |
 | Submission Checklist | docs/submission-checklist.md |
-| GPU Inference Guide | memory/gpu-inference-guide.md |
 
 ---
 
@@ -283,7 +282,7 @@ Real CVE data retrieved from NVD:
 
 ## 10. Future Work
 
-- **Semgrep integration in cloud environment** — install in venv for full pipeline
+- **Semgrep integration in Radeon Cloud container** — install in venv for full pipeline
 - **Continuous batching deployment** — continuous batching for higher throughput
 - **Web UI** — browser-based code upload and report viewing
 - **More languages** — Java, Go, Rust support
@@ -292,4 +291,4 @@ Real CVE data retrieved from NVD:
 
 ---
 
-*Generated:2026-07-19 | CodeRisk Agent v0.3.2*
+*Generated:2026-07-19 | CodeRisk Agent v1.0*

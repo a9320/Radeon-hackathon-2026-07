@@ -75,7 +75,7 @@ HIP compiled successfully and GPU inference is fully operational:
 1. `rocm-smi` showing GPU exists and ROCm is configured
 2. CPU inference as fallback with timing
 3. Architecture diagram showing GPU vs CPU agent assignment
-4. Performance comparison table (CPU vs projected GPU)
+4. Performance comparison table (CPU vs measured GPU)
 
 ---
 
@@ -92,7 +92,7 @@ HIP compiled successfully and GPU inference is fully operational:
 | # | Optimization | Measured Effect | Decision |
 |---|-------------|----------------|----------|
 | 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
-| 2 | Q4_K_M Quantization | 32GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
+| 2 | Q4_K_M Quantization | 64GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
 | 3 | FlashAttention (-fa 1) | [待测] | **Enabled** — Expected 30-50% latency reduction |
 | 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
 | 5 | GGML_HIPBLAS→GGML_HIP | Build flag change | **Root cause** — Old flag silently ignored |

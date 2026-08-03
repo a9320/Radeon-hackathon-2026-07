@@ -197,9 +197,9 @@ CPU · 27 CWE rules" data-shape="rectangle">
   <text x="136.55700000000002" y="511.1000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff"><tspan x="136.55700000000002" dy="-3.9000000000000012">🔍 Agent 1: Static Analyzer</tspan><tspan x="136.55700000000002" dy="16.900000000000002">CPU · 27 CWE rules</tspan></text>
 </g>
 <g class="node" data-id="Dep" data-label="📦 Dependency Scanner
-OSV API + local fallback" data-shape="rectangle">
+Local OSV database" data-shape="rectangle">
   <rect x="405.73569999999995" y="448.20000000000005" width="226.4016" height="53.800000000000004" rx="0" ry="0" fill="#1a3d6b" stroke="#58a6ff" stroke-width="2px" />
-  <text x="518.9365" y="475.1" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff"><tspan x="518.9365" dy="-3.9000000000000012">📦 Dependency Scanner</tspan><tspan x="518.9365" dy="16.900000000000002">OSV API + local fallback</tspan></text>
+  <text x="518.9365" y="475.1" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff"><tspan x="518.9365" dy="-3.9000000000000012">📦 Dependency Scanner</tspan><tspan x="518.9365" dy="16.900000000000002">Local OSV database</tspan></text>
 </g>
 <g class="node" data-id="Sem" data-label="⚙️ Semgrep + Taint
 Pattern + data flow" data-shape="rectangle">

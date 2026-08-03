@@ -35,7 +35,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Terminal showing Phase1 and Phase2 output]**
 
-> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks across our test suite of5 vulnerability samples — both C and Python files."
+> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 47 initial risks across our test suite of5 vulnerability samples — both C and Python files."
 
 > "Phase 2: Semgrep integration — industry-standard rules from the open-source community."
 
@@ -59,7 +59,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Show risk table with CWE links, then zoom into one risk]**
 
-> "25 vulnerabilities detected across C and Python files. Every one has evidence, CWE classification, and a fix suggestion."
+> "47 vulnerabilities detected across C and Python files. Every one has evidence, CWE classification, and a fix suggestion."
 
 **[Screen: Zoom into RISK-014 — show before/after code]**
 
@@ -95,7 +95,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Add NVD/CVE layer]**
 
-> "Third: live NVD query — real CVE numbers, real CVSS scores."
+> "Third: local CVE database query — real CVE numbers, real CVSS scores."
 
 **[Screen: Show Agent3 finding missed risks]**
 
@@ -152,7 +152,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: GitHub repo + team name]**
 
-> "github.com/a9320/code-risk-agent | Team CodeRisk | AMD AI DevMaster Hackathon 2026"
+> "github.com/a9320/code-risk-agent | Yang Weike | AMD AI DevMaster Hackathon 2026"
 
 ---
 

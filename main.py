@@ -31,7 +31,7 @@ BANNER = r"""[bold cyan]
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝
 [/]"""
 
-VERSION = "0.3.2"
+VERSION = "1.0"
 
 SUPPORTED_EXTENSIONS = {".c", ".h", ".py"}
 

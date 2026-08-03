@@ -10,8 +10,8 @@
 | Material | Status | Location |
 |----------|--------|----------|
 | Source Code | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07 |
-| README (English) | ✅ Done | code-risk-agent/README.md |
-| Project Spec Doc | ⏳ TODO | docs/project-spec.md |
+| README (English) | ✅ Done | code-risk-agent-README.md |
+| Project Spec Doc | ✅ Done | docs/project-specification.md |
 | Demo Video (3-5 min) | ⏳ TODO | scripts/run_demo.sh (script ready) |
 | ROCm Optimization Doc | ✅ Done | docs/rocm-optimization.md |
 | Performance Data | ⏳ TODO | Need Radeon Cloud test |
@@ -22,7 +22,7 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Agent 1: Static Analyzer | ✅ | Regex patterns, 11 CWE rules |
+| Agent 1: Static Analyzer | ✅ | Regex patterns, 27 rules (C:13, Python:14) |
 | Agent 2: Semantic Analyzer | ✅ | LLM-driven, ChatML format |
 | Agent 3: Deep Verifier | ✅ | Triple cross-validation + memory |
 | Agent 4: Report Generator | ✅ | JSON/Markdown/Rich + CWE/CVE links |
@@ -31,14 +31,14 @@
 | CVE Client | ✅ | Local SQLite database |
 | Semgrep Integration | ✅ | CLI wrapper |
 | CLI | ✅ | analyze/demo/info commands |
-| Tests | ✅ | 13/13 passing |
+| Tests | ✅ | 51 passing |
 | Demo Script | ✅ | scripts/run_demo.sh |
 
 ---
 
 ## Pre-Submission Checklist
 
-- [ ] All code in English (comments, README, docs)
+- [x] All code in English (comments, README, docs)
 - [ ] README has setup instructions
 - [ ] .env.example has all required vars
 - [ ] pyproject.toml version updated
