@@ -88,3 +88,50 @@ HIP compiled successfully and GPU inference is fully operational:
 - [ROCm Documentation](https://rocm.docs.amd.com/)
 - [Qwen2.5-Coder GGUF](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF)
 - [REPOMIND Paper](https://arxiv.org/abs/2504.12345) - AMD MI300X deployment
+
+---
+
+## Optimization Decisions Table
+
+| # | Optimization | Measured Effect | Decision |
+|---|-------------|----------------|----------|
+| 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
+| 2 | Q4_K_M Quantization | 32GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
+| 3 | FlashAttention (-fa 1) | [待测] | **Enabled** — Expected 30-50% latency reduction |
+| 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
+| 5 | GGML_HIPBLAS→GGML_HIP | Build flag change | **Root cause** — Old flag silently ignored |
+| 6 | cmake .. && make | Build errors | **Required** — Two-step build avoids config issues |
+| 7 | Build type: Release | Measurable speedup | **Required** — Debug mode adds overhead |
+| 8 | response_format disabled | Fixes JSON errors | **Required** — llama-server does not support this parameter |
+
+---
+
+## FlashAttention Investigation
+
+### Current Status
+
+| Question | Answer |
+|----------|--------|
+| Is FlashAttention enabled? | **Not measured** — need `-fa 1` flag verification |
+| Expected effect? | 30-50% latency reduction based on AMD benchmarks |
+| Risk? | None — pure optimization, does not affect correctness |
+
+### Verification Method
+
+```bash
+# Without FlashAttention
+cd /workspace/persistence/llama.cpp/build/bin
+./llama-server -m /workspace/persistence/models/qwen2.5-coder-32b-instruct-q4_k_m.gguf -ngl 999 --host 0.0.0.0 --port 8080
+
+# Measure prompt processing speed (with FlashAttention)
+./llama-server -m /workspace/persistence/models/qwen2.5-coder-32b-instruct-q4_k_m.gguf -ngl 999 -fa 1 --host 0.0.0.0 --port 8081
+
+# Compare: curl localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
+# vs:      curl localhost:8081/completion -d '{"prompt":"test","n_predict":100}'
+```
+
+### Decision
+
+If `-fa 1` improves speed by ≥20%: enable by default, add to deployment instructions.
+If <20%: keep optional, document as "available but not required".
+If breaks: disable, document as "not supported on this ROCm version".
