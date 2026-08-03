@@ -236,7 +236,7 @@ cmake --build build --config Release -j$(nproc)
 
 ###6.3 CVE Validation
 
-Real CVE data from local SQLite database (pre-downloaded from NVD):
+Real CVE data retrieved from NVD:
 - CVE-1999-0046 (Buffer overflow, CVSS10.0)
 - CVE-1999-0067 (Command injection, CVSS10.0)
 - CVE-2003-0791 (Deserialization, CVSS9.8)

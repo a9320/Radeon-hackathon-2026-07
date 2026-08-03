@@ -16,7 +16,8 @@ Thumbs.db
 
 # Demo assets (not for source repo)
 demo-audio/
-*.png
+**.png
+!docs/architecture-diagram.png
 *.mp3
 *.mp4
 

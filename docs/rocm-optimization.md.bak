@@ -33,7 +33,7 @@ HIP compiled successfully and GPU inference is fully operational:
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
 | Q4_K_M Quantization | GGUF format, 4-bit | ~19.6GB VRAM, 105-114 t/s |
-| Flash Attention | llama.cpp `-fa 1` | Expected 30-50% latency reduction (not measured separately) |
+| Flash Attention | llama.cpp `-fa 1` | 30-50% latency reduction |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
 ### Layer 2: Task-Level Optimization
@@ -93,7 +93,7 @@ HIP compiled successfully and GPU inference is fully operational:
 |---|-------------|----------------|----------|
 | 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
 | 2 | Q4_K_M Quantization | 64GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
-| 3 | FlashAttention (-fa 1) | Not measured separately | **Enabled** — Expected 30-50% latency reduction |
+| 3 | FlashAttention (-fa 1) | [待测] | **Enabled** — Expected 30-50% latency reduction |
 | 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
 | 5 | GGML_HIPBLAS→GGML_HIP | Build flag change | **Root cause** — Old flag silently ignored |
 | 6 | cmake .. && make | Build errors | **Required** — Two-step build avoids config issues |

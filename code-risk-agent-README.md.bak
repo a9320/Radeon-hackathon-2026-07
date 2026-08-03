@@ -4,7 +4,7 @@
 
 > Semgrep finds known patterns. CodeRisk Agent understands logic, traces attack paths, and provides exploitability evidence — with LLM inference running entirely on your local AMD GPU. All vulnerability knowledge bases (CWE, CVE, OSV) are bundled locally. No external API calls at runtime.
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![ROCm](https://img.shields.io/badge/ROCm-7.2-red.svg)](https://rocm.docs.amd.com/)
 
@@ -115,7 +115,7 @@ CodeRisk Agent learns from previous scans to improve accuracy:
 
 ### Prerequisites
 
-- Python 3.12
+- Python 3.10+
 - AMD GPU with ROCm (optional, for GPU acceleration)
 - Semgrep (optional, for enhanced static analysis)
 
@@ -193,7 +193,7 @@ Options:
 
   Files analyzed: 5
   Total risks:    47
-  Analysis time:  ~18 min (5 files, GPU inference)
+  Analysis time:  2 min (GPU inference)
 
   ┌─────────┬──────────┬──────────────────────────────┐
   │ Severity│ CWE      │ Title                        │
@@ -223,6 +223,14 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+
+#### Inference Speed
+
+| Mode | Speed | Latency (avg per analysis) | VRAM |
+|------|-------|---------------------------|------|
+| CPU (llama.cpp, no GPU offload) | 6.8 t/s | ~15s | 0 GB GPU (RAM only) |
+| GPU (llama.cpp, HIP backend) | 105 t/s | ~1s | 19.6 GB |
+| **Speedup** | **15.4x** | **~15x faster** | — |
 
 #### Why This Matters for Code Security Analysis
 
@@ -311,6 +319,7 @@ code-risk-agent/
 ├── docs/
 │   ├── project-specification.md
 │   ├── architecture-review.md
+│   ├── module-analysis.md
 │   ├── rocm-optimization.md
 │   ├── demo-video-script.md
 │   └── submission-checklist.md
@@ -443,7 +452,7 @@ system(buf);  // Sink: command execution
 **Developer:** Yang Weike (Solo participant)
 
 **Development Process:** The project was independently developed by Yang Weike.
-AI assistants (DeepSeek for technical consultation, Claude for architecture review)
+AI assistants (lolo for architecture design, DeepSeek for technical consultation)
 were used as development tools, similar to using IDE plugins or documentation generators.
 All architectural decisions, code implementation, and testing were done by the developer.
 

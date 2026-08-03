@@ -41,7 +41,7 @@ for f in files:
     risks = static_analyzer.analyze(f)      # Agent 1
     enriched = semantic_analyzer.analyze(f)  # Agent 2 waits
 
-# Implemented (parallel):
+# Proposed (parallel):
 from concurrent.futures import ThreadPoolExecutor
 
 # Phase 1: Agent 1 runs all files (fast, CPU-only)
@@ -150,24 +150,24 @@ else:
 
 | Improvement | Impact | Effort | Priority |
 |------------|--------|--------|----------|
-| Parallel agents | High | Medium | ✅ Implemented |
-| Iterative reflection | High | Low | ✅ Implemented |
-| Smart root detection | Medium | Low | ✅ Implemented |
-| Incremental saving | Medium | Medium | ✅ Implemented |
-| LLM batch processing | High | High | 📋 Planned |
+| Parallel agents | High | Medium | 🔴 P0 |
+| Iterative reflection | High | Low | 🔴 P0 |
+| Smart root detection | Medium | Low | 🟡 P1 |
+| Incremental saving | Medium | Medium | 🟡 P1 |
+| LLM batch processing | High | High | 🟢 P2 |
 
 ---
 
 ## Implementation Plan
 
 ### This Week (7.20-7.26)
-- [x] Implement parallel Agent 1 + Agent 2 in orchestrator
-- [x] Add iterative reflection to Agent 3 (max 2 rounds)
-- [x] Fix project root detection
+- [ ] Implement parallel Agent 1 + Agent 2 in orchestrator
+- [ ] Add iterative reflection to Agent 3 (max 2 rounds)
+- [ ] Fix project root detection
 
 ### Next Week (7.27-8.2)
-- [x] Add incremental result saving
-- [x] Performance benchmarks (before/after)
+- [ ] Add incremental result saving
+- [ ] Performance benchmarks (before/after)
 
 ### If Time Permits
 - [ ] LLM batch processing

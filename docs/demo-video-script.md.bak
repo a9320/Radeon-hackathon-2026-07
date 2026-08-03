@@ -53,7 +53,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 > "Phase 3: The LLM reads the code like a human auditor. It generates attack scenarios — 'An attacker can inject arbitrary commands through the host parameter.'"
 
-> "Phase 4: Deep verification. Triple cross-validation — tool confirmation, CWE knowledge base, and local CVE database query — real CVE numbers, real CVSS scores, all offline."
+> "Phase 4: Deep verification. Triple cross-validation — tool confirmation, CWE knowledge base, and live CVE lookup from the National Vulnerability Database."
 
 ### Part E: The Report (20s)
 
@@ -148,7 +148,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Architecture diagram + key stats]**
 
-> "CodeRisk Agent. Four AI agents. Orchestrated pipeline. Memory learning. Local CVE validation. All running on your local AMD GPU."
+> "CodeRisk Agent. Four AI agents. Orchestrated pipeline. Memory learning. Live CVE validation. All running on your local AMD GPU."
 
 **[Screen: GitHub repo + team name]**
 

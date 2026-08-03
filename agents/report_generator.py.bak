@@ -102,7 +102,7 @@ class ReportGenerator:
             "meta": {
                 "model_used": result.model_used,
                 "analysis_time_ms": result.analysis_time_ms,
-                "version": "1.0",
+                "version": "0.3.2",
             },
         }
 
@@ -311,9 +311,9 @@ class ReportGenerator:
                 "tool": {
                     "driver": {
                         "name": "CodeRisk Agent",
-                        "version": "1.0",
+                        "version": "0.3.2",
                         "informationUri": "https://github.com/a9320/code-risk-agent",
-                        "semanticVersion": "1.0",
+                        "semanticVersion": "0.3.2",
                         "rules": rules,
                     },
                 },
