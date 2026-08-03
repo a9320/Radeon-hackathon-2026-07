@@ -28,7 +28,7 @@
 | Agent 4: Report Generator | ✅ | JSON/Markdown/Rich + CWE/CVE links |
 | Orchestrator | ✅ | State machine pipeline |
 | Memory Layer | ✅ | Correct + Error memory |
-| CVE Client | ✅ | NVD API integration |
+| CVE Client | ✅ | Local SQLite database |
 | Semgrep Integration | ✅ | CLI wrapper |
 | CLI | ✅ | analyze/demo/info commands |
 | Tests | ✅ | 13/13 passing |

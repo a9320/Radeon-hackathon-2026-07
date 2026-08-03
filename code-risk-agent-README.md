@@ -245,7 +245,7 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 | **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s |
 | **FlashAttention** | `-fa 1` flag | Not benchmarked separately |
 | **KV Cache** | `-c 4096` for stable long-context | Enables 128K context window |
-| **Q4_K_M quantization** | 4-bit GGUF | 5GB VRAM vs 32GB full precision |
+| **Q4_K_M quantization** | 4-bit GGUF | 19.6GB VRAM vs 64GB full precision |
 | **MIOpen auto-tuning** | Enabled by default | First-run slow, subsequent runs fast |
 | **Concurrent agents** | Agent 1+2 parallel, Agent 3 sequential | Prevents VRAM contention between LLM inference |
 | **Build type** | Release mode | Measurable improvement over Debug |

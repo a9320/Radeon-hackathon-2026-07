@@ -13,7 +13,6 @@
 | rocm-smi | Available | Can monitor GPU status |
 | HIP Backend | ✅ Available | GGML_HIP=ON flag |
 | CPU Inference | 6.8 t/s | Fallback mode |
-| Shared API | Qwen3.6-35B-A3B | Available for testing |
 
 ### HIP Backend Status
 
@@ -51,8 +50,6 @@ HIP compiled successfully and GPU inference is fully operational:
 | Optimization | Command | Effect |
 |--------------|---------|--------|
 | HIP Backend | `GGML_HIP=ON` make | 15.4x vs CPU |
-| vLLM Batching | Continuous batching | 3-5x throughput |
-| Prefix Caching | KV cache reuse | Reduce repeated computation |
 | MIOpen | Auto-tuned kernels | Optimized for RDNA3 |
 
 ---
@@ -86,8 +83,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 - [llama.cpp ROCm Build](https://github.com/ggerganov/llama.cpp#rocm)
 - [ROCm Documentation](https://rocm.docs.amd.com/)
-- [Qwen2.5-Coder GGUF](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF)
-- [REPOMIND Paper](https://arxiv.org/abs/2504.12345) - AMD MI300X deployment
+- [Qwen2.5-Coder GGUF](https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF)
 
 ---
 

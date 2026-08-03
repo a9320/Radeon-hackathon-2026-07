@@ -79,7 +79,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Highlight Agent2, show LLM inference output]**
 
-> "Agent 2 runs Qwen2.5-Coder-7B on the AMD GPU. It understands code logic, not just patterns. It can find vulnerabilities that no regex will ever catch."
+> "Agent 2 runs Qwen2.5-Coder-32B on the AMD GPU. It understands code logic, not just patterns. It can find vulnerabilities that no regex will ever catch."
 
 ### Part C: Agent 3 — Deep Verification (25s)
 
@@ -119,7 +119,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Split view — left: terminal, right: rocm-smi]**
 
-> "This is running on an AMD Radeon RX 7900 XTX with ROCm 7.2.4. The model is loaded into GPU memory — every analysis benefits from hardware acceleration."
+> "This is running on an AMD Radeon Pro W7900 with ROCm 7.2.4. The model is loaded into GPU memory — every analysis benefits from hardware acceleration."
 
 ### Part B: Performance Data (20s)
 

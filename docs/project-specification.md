@@ -1,7 +1,7 @@
 # CodeRisk Agent — Project Specification
 
 > AMD AI DevMaster Hackathon | Track 2: Agentic AI
-> Team: Yang Weike (Captain) + lolo (AI Assistant)
+> Team: Yang Weike (Solo Developer)
 > Version: 1.0 | Date: 2026-07-19
 
 ---
@@ -67,7 +67,7 @@ Static Analyzer  Semantic Analyzer
         ↓
     Agent 3                     Triple cross-validation
     Deep Verifier              (Tool + Knowledge Base + CVE)
-    (GPU + LLM + NVD API)
+    (GPU + LLM + Local SQLite)
         ↓
     Agent 4                     Structured reports
     Report Generator           (JSON + Markdown + Terminal)
@@ -113,8 +113,8 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ###4.2 LLM Semantic Analysis
 
-- **Model:** Qwen2.5-Coder-7B-Instruct (7B parameters,128K context)
-- **Quantization:** Q4_K_M GGUF format (~5GB VRAM)
+- **Model:** Qwen2.5-Coder-32B-Instruct (32B parameters,128K context)
+- **Quantization:** Q4_K_M GGUF format (~19.6GB VRAM)
 - **Capabilities:**
   - Validates static analysis findings (true positive vs false positive)
   - Generates attack scenarios for confirmed vulnerabilities
@@ -132,7 +132,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 - Known vulnerability pattern matching
 
 **Strategy3: CVE Database**
-- Real-time NVD API queries
+- Local SQLite database lookup
 - CVSS score retrieval
 - Historical exploit data
 
@@ -170,7 +170,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 | Component | Value |
 |-----------|-------|
-| GPU | AMD Radeon RX 7900 XTX (gfx1100) |
+| GPU | AMD Radeon Pro W7900 (RDNA 3) |
 | ROCm | 7.2.4 |
 | HIP | 7.2.53211 |
 | Platform | Radeon Cloud container |
@@ -196,21 +196,21 @@ cmake --build build --config Release -j$(nproc)
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 628 t/s | — |
-| VRAM usage | — | 24% (~5 GB) | — |
+| VRAM usage | — | 41% (~19.6 GB) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
-> (RX 7900 XTX, ROCm 7.2.4, HIP backend).
+> (Pro W7900, ROCm 7.2.4, HIP backend).
 
 ###5.5 Optimization Strategies
 
 | Layer | Strategy | Expected Impact |
 |-------|----------|-----------------|
-| Model | Q4_K_M quantization |5GB VRAM, fast inference |
+| Model | Q4_K_M quantization |19.6GB VRAM, fast inference |
 | Model | Flash Attention (`-fa 1`) |30-50% latency reduction |
 | Task | Agent1 on CPU, Agent2/3 on GPU | Maximum GPU utilization |
 | System | HIP backend |15x vs CPU |
-| System | Continuous batching (vLLM) |3-5x throughput (future) |
+| System | Continuous batching (future optimization) |3-5x throughput (future) |
 
 ---
 
@@ -218,7 +218,7 @@ cmake --build build --config Release -j$(nproc)
 
 ###6.1 Unit Tests
 
--13 pytest tests, all passing
+-51 pytest tests, all passing
 - Coverage: Buffer overflow, command injection, code injection, deserialization, safe code
 
 ###6.2 End-to-End Test (Radeon Cloud)
@@ -230,7 +230,7 @@ cmake --build build --config Release -j$(nproc)
 | Agent3: Verifier | ✅ |4 missed risks found,1 false positive suppressed |
 | Agent4: Report | ✅ | JSON + Markdown + Terminal |
 | Memory Layer | ✅ |17 patterns recalled |
-| CVE Client | ✅ | NVD API queries successful |
+| CVE Client | ✅ | Local SQLite queries successful |
 
 **Total:**25 risks detected in18 minutes (including GPU inference)
 
@@ -249,14 +249,14 @@ Real CVE data retrieved from NVD:
 | Component | Technology |
 |-----------|-----------|
 | Language | Python3.12 |
-| LLM | Qwen2.5-Coder-7B-Instruct (GGUF Q4_K_M) |
+| LLM | Qwen2.5-Coder-32B-Instruct (GGUF Q4_K_M) |
 | LLM Runtime | llama.cpp with HIP backend |
 | Static Analysis | Regex + Semgrep |
-| CVE Database | NVD API (National Vulnerability Database) |
+| CVE Database | Local SQLite (National Vulnerability Database) |
 | Memory | JSON-based dual memory system |
 | CLI | Rich terminal UI |
 | Testing | pytest |
-| GPU | AMD Radeon RX7900 XTX + ROCm7.2.4 |
+| GPU | AMD Radeon Pro W7900 + ROCm7.2.4 |
 
 ---
 
@@ -277,15 +277,14 @@ Real CVE data retrieved from NVD:
 
 | Member | Role | Strengths |
 |--------|------|-----------|
-| Yang Weike | Captain / Product / Testing | Pwn security, product direction, validation |
-| lolo | Full-stack Development / Architecture | Agent design, code development, documentation |
+| Yang Weike | Solo Developer — Architecture, Implementation, Testing, Documentation |
 
 ---
 
 ## 10. Future Work
 
 - **Semgrep integration in cloud environment** — install in venv for full pipeline
-- **vLLM deployment** — continuous batching for higher throughput
+- **Continuous batching deployment** — continuous batching for higher throughput
 - **Web UI** — browser-based code upload and report viewing
 - **More languages** — Java, Go, Rust support
 - **ChromaDB upgrade** — vector database for semantic memory matching
