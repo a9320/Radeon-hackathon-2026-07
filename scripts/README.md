@@ -1,5 +1,5 @@
 # Scripts
 
-- `setup.sh` — 环境初始化
-- `run_benchmark.sh` — 性能基准测试
-- `deploy.sh` — Radeon Cloud 部署
+- `download_cve_data.py` — Build local CVE database from NVD data
+- `download_osv_data.py` — Build local OSV vulnerability database
+- `run_demo.sh` — Run demo analysis on test cases
