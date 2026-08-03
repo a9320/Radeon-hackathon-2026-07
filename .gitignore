@@ -29,3 +29,4 @@ demo-audio/
 # Internal documentation (not for submission)
 *.docx
 internal/
+*.bak
