@@ -35,7 +35,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **[Screen: Terminal showing Phase1 and Phase2 output]**
 
-> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 47 initial risks across our test suite of5 vulnerability samples — both C and Python files."
+> "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks across our test suite of 5 vulnerability samples — both C and Python files."
 
 > "Phase 2: Semgrep integration — industry-standard rules from the open-source community."
 
@@ -160,9 +160,9 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Recording Checklist
 - [ ] Terminal font: 18pt+, dark theme (VS Code Dark or similar)
-- [ ] Pre-load model before recording (avoid30s startup wait)
+- [ ] Pre-load model before recording (avoid 30s startup wait)
 - [ ] rocm-smi running in background (tmux split pane)
-- [ ] Practice narration2-3 times
+- [ ] Practice narration 2-3 times
 - [ ] Background music: subtle, tech-focused, not distracting
 - [ ] Record Scene2 and Scene3 first (don't depend on GPU)
 - [ ] Record Scene4 last (depends on GPU availability)
@@ -172,7 +172,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 **Plan A: ROCm HIP available (best case)**
 - Split screen: terminal + rocm-smi
 - Show real-time inference with GPU utilization
-- Performance data:105 t/s
+- Performance data: 105 t/s
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo
@@ -185,7 +185,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 - "The code is ready. The GPU is waiting."
 
 ### Key Moments to Highlight
-1. **XZ Utils story** — establishes stakes in20 seconds
+1. **XZ Utils story** — establishes stakes in 20 seconds
 2. **Semgrep vs CodeRisk comparison** — shows differentiation
 3. **Agent3 finding missed risks** — demonstrates intelligence
 4. **Before/after code fix** — shows actionable output
@@ -207,7 +207,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### v4 Changelog (from v3)
 1. ✅ ROCm Build story simplified — removed cmake flag details, kept "found the right build configuration"
-2. ✅ "47 vulnerabilities" contextualized — added "across C and Python files" and "test suite of5 vulnerability samples"
+2. ✅ "47 vulnerabilities" contextualized — added "across C and Python files" and "test suite of 5 vulnerability samples"
 3. ✅ Architecture diagram uses step-by-step animation — start with simple pipeline, layer by layer add CWE/CVE
 4. ✅ Multi-language support mentioned — "both C and Python files" in Scene 2
 5. ✅ One-click fix noted as future work — "copy-paste ready" in current version, --fix parameter planned

@@ -107,7 +107,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ###4.1 Multi-Language Static Analysis
 
-- **C/C++:** Buffer overflow (CWE-120), format string (CWE-134), double free (CWE-415), null pointer (CWE-476), command injection (CWE-78), external control of file name (CWE-73), reachable assertion (CWE-617)
+- **C/C++:** Buffer overflow (CWE-120), format string (CWE-134), double free (CWE-415), null pointer (CWE-476), command injection (CWE-78), file path injection (CWE-73), reachable assertion (CWE-617)
 - **Python:** Code injection (CWE-95), deserialization (CWE-502), command injection (CWE-78), SQL injection (CWE-89)
 - **Detection methods:** Regex patterns + Semgrep rules
 
@@ -207,7 +207,7 @@ cmake --build build --config Release -j$(nproc)
 | Layer | Strategy | Expected Impact |
 |-------|----------|-----------------|
 | Model | Q4_K_M quantization |19.6GB VRAM, fast inference |
-| Model | Flash Attention (`-fa 1`) |30-50% latency reduction |
+| Model | Flash Attention (`-fa 1`) |Expected 30-50% latency reduction (not measured separately) |
 | Task | Agent1 on CPU, Agent2/3 on GPU | Maximum GPU utilization |
 | System | HIP backend |15x vs CPU |
 | System | Continuous batching (future optimization) |3-5x throughput (future) |

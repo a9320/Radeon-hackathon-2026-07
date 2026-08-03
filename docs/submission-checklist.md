@@ -12,9 +12,9 @@
 | Source Code | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07 |
 | README (English) | ✅ Done | code-risk-agent-README.md |
 | Project Spec Doc | ✅ Done | docs/project-specification.md |
-| Demo Video (3-5 min) | ⏳ TODO | scripts/run_demo.sh (script ready) |
+| Demo Video (3-5 min) | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07/releases/download/v1.0/CodeRisk_Demo_4K.mp4 |
 | ROCm Optimization Doc | ✅ Done | docs/rocm-optimization.md |
-| Performance Data | ⏳ TODO | Need Radeon Cloud test |
+| Performance Data | ✅ Done | code-risk-agent-README.md (ROCm GPU Acceleration section) |
 
 ---
 
@@ -39,12 +39,12 @@
 ## Pre-Submission Checklist
 
 - [x] All code in English (comments, README, docs)
-- [ ] README has setup instructions
-- [ ] .env.example has all required vars
-- [ ] pyproject.toml version updated
-- [ ] No API keys in committed code
-- [ ] Git history clean
-- [ ] Hackathon fork repo up to date
+- [x] README has setup instructions
+- [x] .env.example has all required vars
+- [x] pyproject.toml version updated
+- [x] No API keys in committed code
+- [x] Git history clean
+- [x] Hackathon fork repo up to date
 
 ---
 
@@ -52,7 +52,7 @@
 
 1. Fork official repo: https://github.com/AMD-DEV-CONTEST/Radeon-hackathon-2026-07
 2. Push all code to fork
-3. Create PR with title: `Track 2, [Team Name], CodeRisk Agent`
+3. Create PR with title: `Track 2, Yang Weike, CodeRisk Agent`
 4. Attach demo video
 5. Attach project spec document
 
@@ -63,8 +63,8 @@
 | Date | Task |
 |------|------|
 | 7.19-7.20 | ✅ Core code complete |
-| 7.21-7.25 | ROCm testing + performance data |
-| 7.26-7.31 | Demo video + project spec |
-| 8.1-8.3 | Polish + final testing |
+| 7.21-7.25 | ✅ ROCm testing + performance data |
+| 7.26-7.31 | ✅ Demo video + project spec |
+| 8.1-8.3 | ✅ Polish + final testing |
 | 8.4-8.5 | Review + fix |
 | 8.6 | Submit |

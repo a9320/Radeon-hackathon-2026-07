@@ -244,10 +244,6 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 | **LLM response_format** | Disabled (JSON mode) | llama-server does not support this parameter |
 
 ### Performance
-
-> All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
-
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
