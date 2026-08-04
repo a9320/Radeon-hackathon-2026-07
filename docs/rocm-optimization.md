@@ -293,6 +293,24 @@ We tested several ROCm runtime environment variables to evaluate their impact on
 
 llama.cpp supports `-DLLAMA_NATIVE=ON` to enable CPU-specific SIMD instructions. We did not test this as the W7900's GPU inference is the bottleneck (not CPU), and native compilation would only affect CPU-side operations (tokenization, I/O) which account for <1% of total inference time.
 
+
+### KV Cache Size Impact on Performance
+
+We tested different context window sizes to understand VRAM allocation behavior and its impact on inference speed.
+
+| Context Size | VRAM Usage | Token Gen | Prompt Proc | Notes |
+|-------------|------------|-----------|-------------|-------|
+| 2K | 20.7 GB (40.2%) | 29.4 t/s | 263.4 t/s | Minimal VRAM |
+| 8K | 22.3 GB (43.3%) | 29.4 t/s | 265.6 t/s | +1.6 GB vs 2K |
+| ~116K (default) | 50.7 GB (98.5%) | 29.4 t/s | 264.8 t/s | +30 GB vs 2K |
+
+**Key Findings:**
+
+1. **Token generation is constant:** 29.4 t/s regardless of context size. The GPU is compute-bound for token generation, not memory-bound
+2. **VRAM scales linearly with context:** The default 116K context allocates ~30 GB of KV cache beyond the model weights. Reducing context to 8K saves 28.4 GB VRAM
+3. **Prompt processing unaffected:** All context sizes show similar prompt processing speed (~264 t/s) for short prompts
+4. **Practical implication:** For code security analysis of individual files (typically <10K tokens), using  would reduce VRAM from 50.7 GB to 22.3 GB while maintaining identical inference speed. This frees 28 GB for potential multi-model parallel execution
+
 ### Optimization Opportunities from Profiling Data
 
 Based on the 244,233 kernel dispatch profiling data, we identify the following optimization opportunities:
