@@ -247,7 +247,7 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | ~40 t/s | 628 t/s | **15.7×** |
+| Prompt processing | — | 628 t/s | — |
 | VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
 
 ### Build llama.cpp with ROCm
@@ -428,7 +428,7 @@ system(buf);  // Sink: command execution
 | CVE Database | Local SQLite (pre-downloaded from NVD) |
 | Dependency Scan | Local OSV data + fallback dictionary |
 | Memory | JSON-based dual memory system |
-| Output Formats | JSON, Markdown, SARIF 2.1.0, Rich terminal |
+| Output Formats | JSON, Markdown, Rich terminal |
 | CLI | Rich terminal UI |
 | GPU | AMD Radeon Pro W7900 (48GB) + ROCm 7.2.4 |
 
