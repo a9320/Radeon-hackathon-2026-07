@@ -8,7 +8,7 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| GPU | Radeon Pro W7900 (48GB VRAM) | Radeon Cloud container |
+| GPU | Radeon Pro W7900 (48GB GDDR6) | Radeon Cloud container |
 | ROCm | 7.2.4 | Fully configured |
 | rocm-smi | Available | Can monitor GPU status |
 | HIP Backend | ✅ Available | GGML_HIP=ON flag |
@@ -20,7 +20,7 @@
 
 **Investigation Process:**
 
-1. **Hardware verification:** Confirmed GPU was visible via `rocm-smi` — Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4 fully configured
+1. **Hardware verification:** Confirmed GPU was visible via `rocm-smi` — Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4 fully configured
 2. **HIP compiler check:** Verified `hipcc` was in PATH and could compile sample HIP kernels
 3. **Build log analysis:** Reviewed cmake output — found that `GGML_HIPBLAS=ON` was accepted but produced a warning about deprecated flag
 4. **ROCm version correlation:** Cross-referenced ROCm 7.2.4 changelog — discovered HIP backend integration changes in ROCm 7.x
@@ -66,7 +66,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
-| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB model size, 105-114 t/s |
+| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB model size, 105 t/s |
 | Flash Attention | llama.cpp `-fa 1` | Confirmed active via rocprof (10.3% of kernel dispatches) |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
@@ -120,7 +120,7 @@ CodeRisk Agent leverages multiple layers of the AMD software and hardware ecosys
 
 ### Why W7900 is Ideal for This Workload
 
-The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
+The Radeon Pro W7900's 48GB GDDR6 is a critical enabler for CodeRisk Agent:
 
 - **32B model in Q4_K_M:** 19.6 GB model size, with peak VRAM usage of 50.7 GB (98.5%) during inference including KV cache and context window
 - **Single-GPU simplicity:** No need for multi-GPU sharding — the entire model fits on one card, reducing complexity and latency
@@ -267,7 +267,7 @@ The following optimizations are identified for future implementation:
 |--------------|-----------------|------------|----------|
 | **KV cache tuning** | Optimize context window allocation for code analysis workloads | Low | P1 |
 | **Continuous batching** | 3-5× throughput improvement for multi-file batch analysis | High | P2 |
-| **Multi-model pipeline** | 7B model for initial screening + 32B for deep analysis (fits in 48GB VRAM) | High | P2 |
+| **Multi-model pipeline** | 7B model for initial screening + 32B for deep analysis (fits in 48GB GDDR6) | High | P2 |
 | **Custom HIP kernels** | Hardware-accelerated pattern matching for static analysis rules | Very High | P3 |
 | **Explicit MIOpen tuning** | Benchmark and select optimal kernels for W7900 RDNA 3 | Low | P1 |
 | **vLLM integration** | PagedAttention for high-volume scanning scenarios | Medium | P3 |
@@ -277,7 +277,7 @@ The following optimizations are identified for future implementation:
 The following benchmarks were not completed due to GPU time constraints and remain as future work:
 
 ```bash
-# 1. Profile inference to identify bottlenecks
+# 1. Extended hip-trace profiling (deeper kernel analysis)
 rocprof --hip-trace ./llama-server \
   -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf \
   -ngl 999 -fa 1
