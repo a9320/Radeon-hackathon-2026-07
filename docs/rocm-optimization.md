@@ -48,7 +48,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 | Factor | llama.cpp (HIP) | vLLM (ROCm) | Decision |
 |--------|-----------------|-------------|----------|
 | GGUF Support | ✅ Native | ❌ Requires conversion | **llama.cpp** — our Q4_K_M GGUF model works out of the box |
-| VRAM Efficiency | ✅ 19.6 GB (Q4_K_M) | ⚠️ Higher overhead (KV cache pre-allocation, CUDA graphs) | **llama.cpp** — 32B model fits comfortably in 48GB with room for future expansion |
+| VRAM Efficiency | ✅ 19.6 GB model size (Q4_K_M) | ⚠️ Higher overhead (KV cache pre-allocation, CUDA graphs) | **llama.cpp** — Lower VRAM overhead; 32B model fits in 48GB GDDR6 |
 | ROCm 7.2.4 Compatibility | ✅ Well-tested | ⚠️ ROCm support still maturing; 7.x compatibility uncertain | **llama.cpp** — HIP backend stable across ROCm versions |
 | Build Complexity | ✅ cmake + make | ⚠️ Multiple dependencies (flash-attn, triton, etc.) | **llama.cpp** — simpler deployment for local single-user scenario |
 | Multi-user Serving | ❌ Not designed for this | ✅ Continuous batching, PagedAttention | N/A — CodeRisk Agent is a single-user local tool |
@@ -66,8 +66,8 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
-| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB VRAM, 105-114 t/s |
-| Flash Attention | llama.cpp `-fa 1` | Expected 30-50% latency reduction (not measured separately) |
+| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB model size, 105-114 t/s |
+| Flash Attention | llama.cpp `-fa 1` | Confirmed active via rocprof (10.3% of kernel dispatches) |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
 ### Layer 2: Task-Level Optimization
@@ -96,11 +96,12 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 98.5% (~50.7 GB / 51.5 GB) | — |
+| VRAM usage | — | 98.5% (~50.7 GB) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 51.5GB VRAM, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
+> (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
+> Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment.
 
 ---
 
@@ -113,15 +114,15 @@ CodeRisk Agent leverages multiple layers of the AMD software and hardware ecosys
 | **ROCm 7.2.4** | Core GPU compute platform | Latest HIP runtime, MIOpen kernels, and memory management optimizations |
 | **HIP Backend** | GPU inference via llama.cpp HIP backend | Direct access to GPU compute units without CUDA abstraction layer |
 | **MIOpen** | Auto-tuned convolution and attention kernels | Optimized for RDNA 3 architecture; first-run slow, subsequent runs fast |
-| **RDNA 3 Architecture** | Radeon Pro W7900 GPU | 48GB GDDR6 VRAM enables 32B model inference with 59% headroom for future expansion |
+| **RDNA 3 Architecture** | Radeon Pro W7900 GPU | 48GB GDDR6 VRAM enables 32B model inference with KV cache and context window |
 | **Radeon Cloud** | Development and benchmarking environment | Access to production-grade AMD GPU hardware for testing |
-| **rocm-smi** | GPU monitoring during inference | Real-time visibility into VRAM usage (41%), temperature (26°C), and utilization |
+| **rocm-smi** | GPU monitoring during inference | Real-time visibility into VRAM usage (98.5%), temperature (26°C), and utilization |
 
 ### Why W7900 is Ideal for This Workload
 
 The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
 
-- **32B model in Q4_K_M:** 19.6 GB VRAM → 41% utilization, leaving 28.4 GB for KV cache, context window, and future model expansion
+- **32B model in Q4_K_M:** 19.6 GB model size, with peak VRAM usage of 50.7 GB (98.5%) during inference including KV cache and context window
 - **Single-GPU simplicity:** No need for multi-GPU sharding — the entire model fits on one card, reducing complexity and latency
 - **Professional-grade stability:** Pro driver certification ensures consistent performance for long analysis sessions
 - **Thermal efficiency:** 26°C under load — thermal headroom for sustained multi-hour scanning sessions
@@ -157,9 +158,9 @@ The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
 | # | Optimization | Measured Effect | Decision |
 |---|-------------|----------------|----------|
 | 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
-| 2 | Q4_K_M Quantization | 64 GB → 19.6 GB VRAM | **Necessary** — 32B model only fits in 4-bit |
-| 3 | FlashAttention (-fa 1) | Not measured separately | **Enabled** — Expected 30-50% latency reduction |
-| 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
+| 2 | Q4_K_M Quantization | 64 GB → 19.6 GB model size | **Necessary** — 32B model only fits in 4-bit |
+| 3 | FlashAttention (-fa 1) | Confirmed active (25,178 dispatches, 10.3%) | **Enabled** — Confirmed via rocprof profiling |
+| 4 | Concurrency=1 | No VRAM contention | **Required** — Two concurrent 32B inferences would exceed available VRAM |
 | 5 | GGML_HIPBLAS→GGML_HIP | Build flag change | **Root cause** — Old flag silently ignored |
 | 6 | cmake .. && make | Build errors | **Required** — Two-step build avoids config issues |
 | 7 | Build type: Release | Measurable speedup | **Required** — Debug mode adds overhead |
@@ -173,7 +174,7 @@ The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
 
 | Question | Answer |
 |----------|--------|
-| Is FlashAttention enabled? | Enabled — not benchmarked separately |
+| Is FlashAttention enabled? | ✅ Enabled and confirmed active via rocprof profiling (25,178 kernel dispatches, 10.3% of total) |
 | Expected effect? | 30-50% latency reduction based on AMD benchmarks |
 | Risk? | None — pure optimization, does not affect correctness |
 
@@ -202,7 +203,7 @@ FlashAttention is **enabled by default** (`-fa 1` flag) in all production runs b
 - Zero correctness risk — FlashAttention is a pure optimization, does not affect output quality
 - VRAM reduction is a secondary benefit — lower KV cache memory allows larger context windows for analyzing bigger code files
 
-**Current Status:** Enabled in all benchmark runs. Not measured separately due to limited Radeon Cloud GPU time — this is documented as a priority benchmark in the [Future ROCm Optimization Roadmap](#future-rocm-optimization-roadmap).
+**Current Status:** Enabled in all benchmark runs. Confirmed active via rocprof profiling — 25,178 FlashAttention kernel dispatches (10.3% of total 244,233 dispatches). Separate with/without-FA benchmark not conducted due to GPU time constraints.
 
 
 ## Profiling Results
@@ -245,18 +246,25 @@ Total kernel dispatches: **244,233**
 
 ### Profiling Method
 
-\
+| Parameter | Value |
+|-----------|-------|
+| Profiling tool | `rocprofv2` |
+| GPU | AMD Radeon Pro W7900 (48GB GDDR6, RDNA 3) |
+| ROCm | 7.2.4 |
+| Model | Qwen2.5-Coder-32B-Instruct (Q4_K_M GGUF) |
+| Server config | `llama-server -ngl 999 -fa 1` |
+| Tokens generated | 200 |
+| Total kernel dispatches | 244,233 |
 
 
 ---
 
 ## Future ROCm Optimization Roadmap
 
-The following optimizations are identified but not yet implemented due to cloud GPU time constraints:
+The following optimizations are identified for future implementation:
 
 | Optimization | Expected Impact | Complexity | Priority |
 |--------------|-----------------|------------|----------|
-| **rocprof profiling** | Identify kernel-level bottlenecks in inference pipeline | Medium | P1 |
 | **KV cache tuning** | Optimize context window allocation for code analysis workloads | Low | P1 |
 | **Continuous batching** | 3-5× throughput improvement for multi-file batch analysis | High | P2 |
 | **Multi-model pipeline** | 7B model for initial screening + 32B for deep analysis (fits in 48GB VRAM) | High | P2 |
@@ -264,9 +272,9 @@ The following optimizations are identified but not yet implemented due to cloud 
 | **Explicit MIOpen tuning** | Benchmark and select optimal kernels for W7900 RDNA 3 | Low | P1 |
 | **vLLM integration** | PagedAttention for high-volume scanning scenarios | Medium | P3 |
 
-### Profiling Plan
+### Remaining Benchmark Plan
 
-When GPU access is restored, the following profiling steps will be performed:
+The following benchmarks were not completed due to GPU time constraints and remain as future work:
 
 ```bash
 # 1. Profile inference to identify bottlenecks
@@ -289,4 +297,4 @@ time python main.py analyze tests/test_cases/ --output all
 # Compare with single-file sequential timing
 ```
 
-These benchmarks will be added to this document once GPU access is restored.
+> Note: rocprof kernel profiling has been completed. See [Profiling Results](#profiling-results) for the full analysis.
