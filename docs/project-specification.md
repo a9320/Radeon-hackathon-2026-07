@@ -355,6 +355,8 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 | GPU | AMD Radeon Pro W7900 (48GB) or equivalent |
 | ROCm | 7.2.4 (7.2.1 will NOT work — HIP flag changed) |
 | Python | 3.12 |
+| CPU | AMD EPYC 9334 32-Core (128 threads, 2 sockets) |
+| RAM | 503 GB DDR5 |
 | System | Linux (Ubuntu 22.04+ recommended) |
 | Disk | 25GB+ (model + CVE database) |
 
