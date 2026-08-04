@@ -4,6 +4,22 @@
 
 > Semgrep finds known patterns. CodeRisk Agent understands logic, traces attack paths, and provides exploitability evidence — with LLM inference running entirely on your local AMD GPU. All vulnerability knowledge bases (CWE, CVE, OSV) are bundled locally. No external API calls at runtime.
 
+## Key Metrics
+
+| Metric | Value |
+|--------|-------|
+| Model | Qwen2.5-Coder-32B-Instruct (32B parameters) |
+| GPU | AMD Radeon Pro W7900 (48GB VRAM) |
+| ROCm | 7.2.4 with HIP backend |
+| GPU Inference Speed | 105 t/s (15.4× vs CPU) |
+| Prompt Processing | 628 t/s |
+| VRAM Usage | 19.6 GB (41% of 48GB) |
+| Detection Rules | 27 (C: 13, Python: 14) |
+| Unit Tests | 51 (all passing) |
+| Network Calls at Runtime | Zero (verified by tcpdump) |
+| Languages | C/C++, Python |
+| Team | Yang Weike (Solo Developer) |
+
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![ROCm](https://img.shields.io/badge/ROCm-7.2-red.svg)](https://rocm.docs.amd.com/)
