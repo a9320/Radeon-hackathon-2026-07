@@ -12,7 +12,7 @@
 | GPU | AMD Radeon Pro W7900 (48GB VRAM) |
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 105 t/s (15.4× vs CPU) |
-| Prompt Processing | 628 t/s |
+| Prompt Processing | 667 t/s |
 | VRAM Usage | 19.6 GB (41% of 48GB) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
@@ -306,7 +306,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 628 t/s | — |
+| Prompt processing | — | 667 t/s | — |
 | VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
