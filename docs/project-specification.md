@@ -211,7 +211,7 @@ cmake --build build --config Release -j$(nproc)
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 628 t/s | — |
+| Prompt processing | — | 667 t/s | — |
 | VRAM usage | — | 41% (~19.6 GB) | — |
 | GPU temperature | — | 26°C | — |
 
