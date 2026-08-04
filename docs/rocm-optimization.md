@@ -196,3 +196,46 @@ cd /workspace/persistence/llama.cpp/build/bin
 If `-fa 1` improves speed by ≥20%: enable by default, add to deployment instructions.
 If <20%: keep optional, document as "available but not required".
 If breaks: disable, document as "not supported on this ROCm version".
+
+---
+
+## Future ROCm Optimization Roadmap
+
+The following optimizations are identified but not yet implemented due to cloud GPU time constraints:
+
+| Optimization | Expected Impact | Complexity | Priority |
+|--------------|-----------------|------------|----------|
+| **rocprof profiling** | Identify kernel-level bottlenecks in inference pipeline | Medium | P1 |
+| **KV cache tuning** | Optimize context window allocation for code analysis workloads | Low | P1 |
+| **Continuous batching** | 3-5× throughput improvement for multi-file batch analysis | High | P2 |
+| **Multi-model pipeline** | 7B model for initial screening + 32B for deep analysis (fits in 48GB VRAM) | High | P2 |
+| **Custom HIP kernels** | Hardware-accelerated pattern matching for static analysis rules | Very High | P3 |
+| **Explicit MIOpen tuning** | Benchmark and select optimal kernels for W7900 RDNA 3 | Low | P1 |
+| **vLLM integration** | PagedAttention for high-volume scanning scenarios | Medium | P3 |
+
+### Profiling Plan
+
+When GPU access is restored, the following profiling steps will be performed:
+
+```bash
+# 1. Profile inference to identify bottlenecks
+rocprof --hip-trace ./llama-server \
+  -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf \
+  -ngl 999 -fa 1
+
+# 2. Measure FlashAttention impact
+# Without FA: baseline
+./llama-server -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf -ngl 999
+# With FA:
+./llama-server -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf -ngl 999 -fa 1
+
+# 3. VRAM breakdown analysis
+rocm-smi --showmeminfo vram --showuse gfx
+# During inference: measure VRAM used by model weights vs KV cache vs overhead
+
+# 4. Multi-file batch benchmark
+time python main.py analyze tests/test_cases/ --output all
+# Compare with single-file sequential timing
+```
+
+These benchmarks will be added to this document once GPU access is restored.
