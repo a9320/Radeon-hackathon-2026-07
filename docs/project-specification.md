@@ -128,7 +128,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ### 4.2 LLM Semantic Analysis
 
-- **Model:** Qwen2.5-Coder-32B-Instruct (32B parameters,128K context)
+- **Model:** Qwen2.5-Coder-32B-Instruct (32B parameters, 128K context)
 - **Quantization:** Q4_K_M GGUF format (~19.6 GB VRAM)
 - **Capabilities:**
   - Validates static analysis findings (true positive vs false positive)
@@ -394,7 +394,7 @@ python main.py analyze tests/test_cases/ --output terminal
   -ngl 999 -fa 1 --host 0.0.0.0 --port 8080
 
 # Verify GPU is being used
-rocm-smi  # Should show ~19.6GB VRAM usage
+rocm-smi  # Should show ~19.6 GB VRAM usage
 
 # Test inference speed
 curl http://localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
