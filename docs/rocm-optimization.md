@@ -104,6 +104,37 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 ---
 
+## AMD Ecosystem Integration
+
+CodeRisk Agent leverages multiple layers of the AMD software and hardware ecosystem:
+
+| AMD Technology | How We Use It | Benefit |
+|----------------|---------------|----------|
+| **ROCm 7.2.4** | Core GPU compute platform | Latest HIP runtime, MIOpen kernels, and memory management optimizations |
+| **HIP Backend** | GPU inference via llama.cpp HIP backend | Direct access to GPU compute units without CUDA abstraction layer |
+| **MIOpen** | Auto-tuned convolution and attention kernels | Optimized for RDNA 3 architecture; first-run slow, subsequent runs fast |
+| **RDNA 3 Architecture** | Radeon Pro W7900 GPU | 48GB GDDR6 VRAM enables 32B model inference with 59% headroom for future expansion |
+| **Radeon Cloud** | Development and benchmarking environment | Access to production-grade AMD GPU hardware for testing |
+| **rocm-smi** | GPU monitoring during inference | Real-time visibility into VRAM usage (41%), temperature (26°C), and utilization |
+
+### Why W7900 is Ideal for This Workload
+
+The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
+
+- **32B model in Q4_K_M:** 19.6 GB VRAM → 41% utilization, leaving 28.4 GB for KV cache, context window, and future model expansion
+- **Single-GPU simplicity:** No need for multi-GPU sharding — the entire model fits on one card, reducing complexity and latency
+- **Professional-grade stability:** Pro driver certification ensures consistent performance for long analysis sessions
+- **Thermal efficiency:** 26°C under load — thermal headroom for sustained multi-hour scanning sessions
+
+### ROCm-Specific Optimizations Applied
+
+1. **Full GPU layer offload (`-ngl 999`):** All transformer layers on GPU, CPU only handles I/O and orchestration
+2. **HIP-aware memory management:** Model weights loaded directly into GPU memory via HIP API, no CPU-GPU data transfer during inference
+3. **MIOpen autotuning:** Enabled by default in ROCm 7.2.4 — selects optimal kernels for RDNA 3 compute units
+4. **Controlled concurrency:** Agent 2 and Agent 3 run sequentially on GPU (`max_workers=1`) to prevent VRAM contention — a deliberate stability-over-speed decision given the 32B model's memory footprint
+
+---
+
 ## Demo Video ROCm Scenes
 
 1. `rocm-smi` showing GPU exists and ROCm is configured
