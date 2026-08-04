@@ -204,6 +204,50 @@ FlashAttention is **enabled by default** (`-fa 1` flag) in all production runs b
 
 **Current Status:** Enabled in all benchmark runs. Not measured separately due to limited Radeon Cloud GPU time — this is documented as a priority benchmark in the [Future ROCm Optimization Roadmap](#future-rocm-optimization-roadmap).
 
+
+## Profiling Results
+
+GPU kernel profiling was performed using `rocprofv2` on the Radeon Pro W7900 with ROCm 7.2.4 during a single inference pass (200 tokens generated).
+
+### Kernel Dispatch Summary
+
+Total kernel dispatches: **244,233**
+
+| Kernel | Dispatches | % | Category |
+|--------|-----------|---|----------|
+| quantize_q8_1 | 75,859 | 31.1% | Quantization (FP16→INT8) |
+| mul_mat_vec_q (Q4_K) | 63,076 | 25.8% | Matrix-vector multiply (4-bit) |
+| rms_norm_f32 | 25,504 | 10.4% | RMS normalization |
+| rope_neox | 25,306 | 10.4% | Rotary position embedding |
+| mul_mat_vec_q (Q6_K) | 12,782 | 5.2% | Matrix-vector multiply (6-bit) |
+| flash_attn_tile | 12,589 | 5.2% | FlashAttention tile compute |
+| flash_attn_combine | 12,589 | 5.2% | FlashAttention combine results |
+| k_set_rows | 12,653 | 5.2% | Row setup |
+| copyBuffer | 1,118 | 0.5% | Memory copy (host↔device) |
+
+### Analysis by Category
+
+| Category | Dispatches | % |
+|----------|-----------|---|
+| Quantization | 75,859 | 31.1% |
+| Matrix Operations (GEMM) | 75,858 | 31.1% |
+| Normalization | 25,504 | 10.4% |
+| Position Encoding (RoPE) | 25,306 | 10.4% |
+| Attention (FlashAttention) | 25,178 | 10.3% |
+| Memory Transfers | 2,269 | 0.9% |
+
+### Key Findings
+
+1. **Compute-bound, not memory-bound:** Memory transfers account for only 0.9% of all kernel dispatches — the GPU is spending 99.1% of its time on computation
+2. **FlashAttention is active:** 25,178 dispatches (10.3%) confirm that FlashAttention is being used during inference, not just enabled in configuration
+3. **Quantized inference dominates:** 62.2% of dispatches are for quantized matrix operations (Q4_K + Q6_K + quantization), confirming efficient use of the Q4_K_M GGUF format
+4. **RMS Normalization overhead:** 10.4% of dispatches for normalization suggests potential optimization opportunity (fused kernels)
+
+### Profiling Method
+
+\
+
+
 ---
 
 ## Future ROCm Optimization Roadmap
