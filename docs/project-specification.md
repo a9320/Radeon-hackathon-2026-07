@@ -340,6 +340,9 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 | ROCm Optimization Docs | docs/rocm-optimization.md |
 | Demo Video Script | docs/demo-video-script.md |
 | Submission Checklist | docs/submission-checklist.md |
+| Architecture Review | docs/architecture-review.md |
+| PPT Presentation | docs/CodeRisk_Agent_Presentation.pptx |
+| Benchmark Script | scripts/benchmark.py |
 
 ---
 
