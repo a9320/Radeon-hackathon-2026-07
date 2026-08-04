@@ -66,7 +66,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
-| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6GB VRAM, 105-114 t/s |
+| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB VRAM, 105-114 t/s |
 | Flash Attention | llama.cpp `-fa 1` | Expected 30-50% latency reduction (not measured separately) |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
@@ -83,7 +83,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Command | Effect |
 |--------------|---------|--------|
-| HIP Backend | `GGML_HIP=ON` make | 15.4x vs CPU |
+| HIP Backend | `GGML_HIP=ON` make | 15.4× vs CPU |
 | MIOpen | Auto-tuned kernels | Optimized for RDNA3 |
 
 ---
@@ -157,7 +157,7 @@ The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
 | # | Optimization | Measured Effect | Decision |
 |---|-------------|----------------|----------|
 | 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
-| 2 | Q4_K_M Quantization | 64GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
+| 2 | Q4_K_M Quantization | 64 GB → 19.6 GB VRAM | **Necessary** — 32B model only fits in 4-bit |
 | 3 | FlashAttention (-fa 1) | Not measured separately | **Enabled** — Expected 30-50% latency reduction |
 | 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
 | 5 | GGML_HIPBLAS→GGML_HIP | Build flag change | **Root cause** — Old flag silently ignored |
