@@ -244,6 +244,21 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 >
 > **GPU:** AMD Radeon Pro W7900 (RDNA 3, 48GB GDDR6), ROCm 7.2.4, HIP backend via llama.cpp
 
+### Benchmark Methodology
+
+All performance data was collected using the following methodology:
+
+1. **Environment:** AMD Radeon Cloud container with Radeon Pro W7900 (48GB) and ROCm 7.2.4
+2. **Model:** Qwen2.5-Coder-32B-Instruct, Q4_K_M GGUF quantization (19.6 GB)
+3. **Inference Engine:** llama.cpp with HIP backend (`GGML_HIP=ON`), built in Release mode
+4. **Server Configuration:** `llama-server -m <model> -ngl 999 -fa 1 -c 4096`
+5. **Measurement:** Token generation speed measured via llama-server's `/completion` endpoint; prompt processing speed measured during initial context loading
+6. **CPU Baseline:** Same container, same model, CPU-only mode (`-ngl 0`)
+7. **E2E Test:** 5 test files (C + Python), full pipeline (Agent 1 → 2 → 3 → 4), 18 minutes total
+8. **Network Verification:** `tcpdump` monitoring during full test suite — zero outbound connections detected
+
+> All benchmarks are reproducible using the build instructions in the [ROCm Optimization](docs/rocm-optimization.md) document and the test cases in `tests/test_cases/`.
+
 #### Why This Matters for Code Security Analysis
 
 - **Real-time feedback:** Developers get vulnerability reports in seconds, not minutes — enabling security analysis within the development workflow
