@@ -11,7 +11,7 @@
 **CodeRisk Agent** is an AI-powered code security analysis system that runs entirely on local AMD Radeon GPUs. It combines multiple specialized AI agents with traditional static analysis tools to detect, verify, and report software vulnerabilities — without sending source code to any external service.
 
 **Key Differentiators:**
-- Multi-Agent architecture with4 specialized agents + orchestrator
+- Multi-Agent architecture with 4 specialized agents + orchestrator
 - Triple cross-validation with self-reflection loop
 - Dual memory system (correct patterns + false positive suppression)
 - Local CVE database (pre-downloaded from NVD)
@@ -33,8 +33,8 @@ Modern enterprises face a critical tension: they need AI-powered code security a
 
 **The scale of the problem:**
 - 25,000+ new CVEs published annually (2025 data)
-- 67% of enterprises express concern about AI code tool data security (Gartner,2024)
-- Average cost of a data breach: $4.88 million (IBM,2024)
+- 67% of enterprises express concern about AI code tool data security (Gartner, 2024)
+- Average cost of a data breach: $4.88 million (IBM, 2024)
 
 **The gap:** Existing tools like Semgrep find known patterns but miss logic vulnerabilities. Cloud AI understands code but requires uploading it. There is no solution that combines deep AI analysis with local-only execution.
 
@@ -105,43 +105,43 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ## 4. Core Features
 
-###4.1 Multi-Language Static Analysis
+### 4.1 Multi-Language Static Analysis
 
 - **C/C++:** Buffer overflow (CWE-120), format string (CWE-134), double free (CWE-415), null pointer (CWE-476), command injection (CWE-78), file path injection (CWE-73), reachable assertion (CWE-617)
 - **Python:** Code injection (CWE-95), deserialization (CWE-502), command injection (CWE-78), SQL injection (CWE-89)
 - **Detection methods:** Regex patterns + Semgrep rules
 
-###4.2 LLM Semantic Analysis
+### 4.2 LLM Semantic Analysis
 
 - **Model:** Qwen2.5-Coder-32B-Instruct (32B parameters,128K context)
-- **Quantization:** Q4_K_M GGUF format (~19.6GB VRAM)
+- **Quantization:** Q4_K_M GGUF format (~19.6 GB VRAM)
 - **Capabilities:**
   - Validates static analysis findings (true positive vs false positive)
   - Generates attack scenarios for confirmed vulnerabilities
   - Finds vulnerabilities missed by pattern matching
   - Adjusts severity based on code context
 
-###4.3 Deep Verification (Triple Cross-Validation)
+### 4.3 Deep Verification (Triple Cross-Validation)
 
-**Strategy1: Tool Confirmation**
+**Strategy 1: Tool Confirmation**
 - Did both static analysis and LLM agree?
 - Multiple evidence sources boost confidence
 
-**Strategy2: Knowledge Base**
+**Strategy 2: Knowledge Base**
 - CWE database validation
 - Known vulnerability pattern matching
 
-**Strategy3: CVE Database**
+**Strategy 3: CVE Database**
 - Local SQLite database lookup
 - CVSS score from local SQLite database
 - Historical exploit data
 
 **Self-Reflection Loop:**
-- Agent 3 reviews all findings from Agents1 and2
+- Agent 3 reviews all findings from Agents 1 and 2
 - Asks LLM: "Did we miss anything?"
-- Found4 additional risks in testing
+- Found 4 additional risks in testing
 
-###4.4 Dual Memory System
+### 4.4 Dual Memory System
 
 **Correct Memory:**
 - Stores confirmed vulnerability patterns
@@ -155,7 +155,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 **Persistence:** JSON-based storage, survives restarts
 
-###4.5 Structured Reporting
+### 4.5 Structured Reporting
 
 - **JSON:** Machine-readable, API-friendly
 - **Markdown:** Human-readable, with CWE/CVE clickable links
@@ -166,7 +166,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 
 ## 5. ROCm Optimization
 
-###5.1 GPU Environment
+### 5.1 GPU Environment
 
 | Component | Value |
 |-----------|-------|
@@ -175,7 +175,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 | HIP | 7.2.53211 |
 | Platform | Radeon Cloud container |
 
-###5.2 Key Discovery
+### 5.2 Key Discovery
 
 The llama.cpp build system changed the HIP backend flag:
 - **Old (2024-2025):** `GGML_HIPBLAS=ON`
@@ -183,14 +183,14 @@ The llama.cpp build system changed the HIP backend flag:
 
 This was the root cause of initial GPU inference failures — not container virtualization limitations.
 
-###5.3 Build Command
+### 5.3 Build Command
 
 ```bash
 ROCM_PATH=/opt/rocm-7.2.4 cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
 cmake --build build --config Release -j$(nproc)
 ```
 
-###5.4 Performance Results
+### 5.4 Performance Results
 
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
@@ -202,45 +202,45 @@ cmake --build build --config Release -j$(nproc)
 > All performance data was measured on our Radeon Cloud instance
 > (Pro W7900, ROCm 7.2.4, HIP backend).
 
-###5.5 Optimization Strategies
+### 5.5 Optimization Strategies
 
 | Layer | Strategy | Expected Impact |
 |-------|----------|-----------------|
-| Model | Q4_K_M quantization |19.6GB VRAM, fast inference |
+| Model | Q4_K_M quantization |19.6 GB VRAM, fast inference |
 | Model | Flash Attention (`-fa 1`) |Expected 30-50% latency reduction (not measured separately) |
-| Task | Agent1 on CPU, Agent2/3 on GPU | Maximum GPU utilization |
-| System | HIP backend |15x vs CPU |
-| System | Continuous batching (future optimization) |3-5x throughput (future) |
+| Task | Agent 1 on CPU, Agent 2/3 on GPU | Maximum GPU utilization |
+| System | HIP backend |15× vs CPU |
+| System | Continuous batching (future optimization) |3-5× throughput (future) |
 
 ---
 
 ## 6. Testing & Validation
 
-###6.1 Unit Tests
+### 6.1 Unit Tests
 
--51 pytest tests, all passing
+- 51 pytest tests, all passing
 - Coverage: Buffer overflow, command injection, code injection, deserialization, safe code
 
-###6.2 End-to-End Test (Radeon Cloud)
+### 6.2 End-to-End Test (Radeon Cloud)
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Agent1: Static | ✅ |5 files,18 risks |
-| Agent2: LLM | ✅ |10 calls,11,362 tokens |
-| Agent3: Verifier | ✅ |4 missed risks found,1 false positive suppressed |
-| Agent4: Report | ✅ | JSON + Markdown + Terminal |
+| Agent 1: Static | ✅ |5 files, 18 risks |
+| Agent 2: LLM | ✅ |10 calls, 11,362 tokens |
+| Agent 3: Verifier | ✅ |4 missed risks found, 1 false positive suppressed |
+| Agent 4: Report | ✅ | JSON + Markdown + Terminal |
 | Memory Layer | ✅ |17 patterns recalled |
 | CVE Client | ✅ | Local SQLite queries successful |
 
-**Total:**47-48 risks detected in18 minutes (including GPU inference)
+**Total:**47-48 risks detected in 18 minutes (including GPU inference)
 
-###6.3 CVE Validation
+### 6.3 CVE Validation
 
 Real CVE data from local SQLite database (pre-downloaded from NVD):
-- CVE-1999-0046 (Buffer overflow, CVSS10.0)
-- CVE-1999-0067 (Command injection, CVSS10.0)
-- CVE-2003-0791 (Deserialization, CVSS9.8)
-- CVE-2002-0159 (Format string, CVSS7.5)
+- CVE-1999-0046 (Buffer overflow, CVSS 10.0)
+- CVE-1999-0067 (Command injection, CVSS 10.0)
+- CVE-2003-0791 (Deserialization, CVSS 9.8)
+- CVE-2002-0159 (Format string, CVSS 7.5)
 
 ---
 
@@ -248,7 +248,7 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 | Component | Technology |
 |-----------|-----------|
-| Language | Python3.12 |
+| Language | Python 3.12 |
 | LLM | Qwen2.5-Coder-32B-Instruct (GGUF Q4_K_M) |
 | LLM Runtime | llama.cpp with HIP backend |
 | Static Analysis | Regex + Semgrep |
@@ -256,7 +256,7 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 | Memory | JSON-based dual memory system |
 | CLI | Rich terminal UI |
 | Testing | pytest |
-| GPU | AMD Radeon Pro W7900 + ROCm7.2.4 |
+| GPU | AMD Radeon Pro W7900 + ROCm 7.2.4 |
 
 ---
 
@@ -291,4 +291,4 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 ---
 
-*Generated:2026-07-19 | CodeRisk Agent v1.0*
+*Generated: 2026-08-03 | CodeRisk Agent v1.0*
