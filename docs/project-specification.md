@@ -103,7 +103,7 @@ Static Analyzer  Semantic Analyzer
 | Agent 1: Static Analyzer | Pattern matching | CPU | CWE-120/134/476/415/78/95/502/73/617 |
 | Agent 2: Semantic Analyzer | LLM-driven analysis | GPU | Validates risks, finds missed vulnerabilities |
 | Agent 3: Deep Verifier | Triple cross-validation | GPU + CPU | CVE lookup, memory recall, self-reflection |
-| Agent 4: Report Generator | Output formatting | CPU | JSON, Markdown, Rich terminal |
+| Agent 4: Report Generator | Output formatting | CPU | JSON, Markdown, Rich terminal, SARIF |
 | Orchestrator | State machine | CPU | Pipeline coordination, error handling |
 
 ### Orchestrator State Machine
@@ -322,7 +322,7 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 | Output Formats | JSON, Markdown, Rich terminal, SARIF |
 | LLM | Qwen2.5-Coder-32B-Instruct (GGUF Q4_K_M) |
 | LLM Runtime | llama.cpp with HIP backend |
-| Static Analysis | Regex + Semgrep |
+| Static Analysis | Regex + Tree-sitter + Semgrep |
 | CVE Database | Local SQLite (National Vulnerability Database) |
 | Memory | JSON-based dual memory system |
 | CLI | Rich terminal UI |
@@ -401,7 +401,7 @@ python main.py analyze tests/test_cases/ --output terminal
   -ngl 999 -fa 1 --host 0.0.0.0 --port 8080
 
 # Verify GPU is being used
-rocm-smi  # Should show ~19.6 GB VRAM usage
+rocm-smi  # Should show ~50.7 GB VRAM usage (98.5%)
 
 # Test inference speed
 curl http://localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
