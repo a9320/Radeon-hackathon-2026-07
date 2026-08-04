@@ -15,7 +15,7 @@
 | Demo Video (3-5 min) | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07/releases/download/v1.0/CodeRisk_Demo_4K.mp4 |
 | ROCm Optimization Doc | ✅ Done | docs/rocm-optimization.md |
 | Performance Data | ✅ Done | code-risk-agent-README.md (ROCm GPU Acceleration section) |
-| PPT / Poster | ✅ Done | docs/CodeRisk_Agent_Presentation.pdf |
+| PPT / Poster | ✅ Done | docs/CodeRisk_Agent_Presentation.pptx |
 
 ---
 
