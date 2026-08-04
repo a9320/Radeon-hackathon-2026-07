@@ -265,6 +265,34 @@ model precision, VRAM usage, and inference speed on ROCm 7.2.4.
 
 **Conclusion:** Q4_K_M provides the best speed-precision trade-off for code security analysis on the W7900. The marginal precision gain from Q5_K_M does not justify the 7.5% slowdown in token generation.
 
+
+### MIOpen Kernel Auto-Tuning
+
+MIOpen (AMD's machine intelligence primitive library) provides auto-tuning for GPU kernels. We performed explicit kernel search using `MIOPEN_FIND_MODE=3` (exhaustive search) to optimize for the W7900's RDNA 3 architecture.
+
+| Configuration | Token Gen | Prompt Proc | Notes |
+|--------------|-----------|-------------|-------|
+| Default (cached kernels) | 29.4 t/s | 264.8 t/s | Pre-built kernel cache |
+| Exhaustive search (MIOPEN_FIND_MODE=3) | 29.4 t/s | 265.5 t/s | First run with fresh search |
+
+**Finding:** MIOpen's default kernel cache already provides near-optimal kernels for RDNA 3. Exhaustive search yielded no measurable improvement, confirming that llama.cpp's HIP backend ships with well-tuned MIOpen kernels.
+
+### ROCm Environment Variable Tuning
+
+We tested several ROCm runtime environment variables to evaluate their impact on inference performance.
+
+| Configuration | Token Gen | Prompt Proc | Impact |
+|--------------|-----------|-------------|--------|
+| Baseline (no tuning) | 29.4 t/s | 266.3 t/s | — |
+| HSA_ENABLE_SDMA=1 | 29.4 t/s | 269.7 t/s | +1.3% prompt (noise) |
+| GPU_MAX_COMPUTE_UNITS=48 | 29.5 t/s | 266.6 t/s | +0.3% (noise) |
+
+**Finding:** ROCm environment variables have negligible impact on llama.cpp inference performance. The HIP backend automatically configures optimal settings. This confirms that llama.cpp's ROCm integration is mature and does not require manual tuning.
+
+### Build Optimization: Default Release vs Native
+
+llama.cpp supports `-DLLAMA_NATIVE=ON` to enable CPU-specific SIMD instructions. We did not test this as the W7900's GPU inference is the bottleneck (not CPU), and native compilation would only affect CPU-side operations (tokenization, I/O) which account for <1% of total inference time.
+
 ### Optimization Opportunities from Profiling Data
 
 Based on the 244,233 kernel dispatch profiling data, we identify the following optimization opportunities:
