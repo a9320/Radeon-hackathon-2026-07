@@ -452,4 +452,4 @@ tcpdump -r monitor.pcap -n
 
 ---
 
-*Generated: 2026-08-03 | CodeRisk Agent v1.0*
+*Generated: 2026-08-04 | CodeRisk Agent v1.0*
