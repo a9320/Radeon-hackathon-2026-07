@@ -129,7 +129,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 ### 4.2 LLM Semantic Analysis
 
 - **Model:** Qwen2.5-Coder-32B-Instruct (32B parameters, 128K context)
-- **Quantization:** Q4_K_M GGUF format (~19.6 GB VRAM)
+- **Quantization:** Q4_K_M GGUF format (~19.6 GB model size)
 - **Capabilities:**
   - Validates static analysis findings (true positive vs false positive)
   - Generates attack scenarios for confirmed vulnerabilities
@@ -222,10 +222,10 @@ cmake --build build --config Release -j$(nproc)
 
 | Layer | Strategy | Expected Impact |
 |-------|----------|-----------------|
-| Model | Q4_K_M quantization |19.6 GB VRAM, fast inference |
-| Model | Flash Attention (`-fa 1`) |Expected 30-50% latency reduction (not measured separately) |
+| Model | Q4_K_M quantization |19.6 GB model size, fast inference |
+| Model | Flash Attention (`-fa 1`) |Confirmed active via rocprof profiling (25,178 dispatches, 10.3%) |
 | Task | Agent 1 on CPU, Agent 2/3 on GPU | Maximum GPU utilization |
-| System | HIP backend |15× vs CPU |
+| System | HIP backend |15.4× vs CPU |
 | System | Continuous batching (future optimization) |3-5× throughput (future) |
 
 ---
@@ -352,7 +352,7 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 
 | Component | Requirement |
 |-----------|------------|
-| GPU | AMD Radeon Pro W7900 (48GB) or equivalent |
+| GPU | AMD Radeon Pro W7900 (48GB GDDR6) or equivalent |
 | ROCm | 7.2.4 (7.2.1 will NOT work — HIP flag changed) |
 | Python | 3.12 |
 | CPU | AMD EPYC 9334 32-Core (128 threads, 2 sockets) |
@@ -374,7 +374,7 @@ pip install -e .
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
 ROCM_PATH=/opt/rocm-7.2.4 cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
-cmake --build build --config Release -j$(ncpu)
+cmake --build build --config Release -j$(nproc)
 cd ..
 
 # 4. Download model
