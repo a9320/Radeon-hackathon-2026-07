@@ -2,7 +2,7 @@
 name = "code-risk-agent"
 version = "1.0"
 description = "AI-powered code quality and risk analysis agent"
-readme = "README.md"
+readme = "code-risk-agent-README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [
