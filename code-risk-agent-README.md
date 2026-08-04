@@ -372,7 +372,9 @@ code-risk-agent/
 │   ├── architecture-review.md
 │   ├── rocm-optimization.md
 │   ├── demo-video-script.md
-│   └── submission-checklist.md
+│   ├── submission-checklist.md
+│   ├── CodeRisk_Agent_Presentation.pptx
+│   └── assets/                    # Performance charts and screenshots
 ├── data/                          # Local vulnerability databases
 │   ├── vuln_db.sqlite             # CVE data (built by download_cve_data.py)
 │   └── osv/
@@ -380,7 +382,8 @@ code-risk-agent/
 ├── scripts/
 │   ├── run_demo.sh
 │   ├── download_cve_data.py       # NVD CVE database builder
-│   └── download_osv_data.py       # OSV vulnerability data builder
+│   ├── download_osv_data.py       # OSV vulnerability data builder
+│   └── benchmark.py               # Performance benchmark script
 ├── pyproject.toml
 └── .env.example
 ```
