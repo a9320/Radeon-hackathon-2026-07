@@ -245,6 +245,26 @@ Total kernel dispatches: **244,233**
 4. **RMS Normalization overhead:** 10.4% of dispatches for normalization suggests potential optimization opportunity (fused kernels)
 
 
+
+### Quantization Comparison on AMD Radeon Pro W7900
+
+We benchmarked two quantization levels to evaluate the trade-off between
+model precision, VRAM usage, and inference speed on ROCm 7.2.4.
+
+| Quantization | Model Size | VRAM Usage | Token Gen | Prompt Proc | vs Q4_K_M |
+|-------------|-----------|------------|-----------|-------------|-----------|
+| Q4_K_M (4-bit) | 19.6 GB | 50.7 GB (98.5%) | 29.4 t/s | 264.8 t/s | baseline |
+| Q5_K_M (5-bit) | 22.8 GB | 50.7 GB (98.5%) | 27.2 t/s | 272.1 t/s | -7.5% gen |
+
+**Key Findings:**
+
+1. **Q4_K_M is optimal for our use case:** Token generation (the bottleneck for real-time analysis) is 8.1% faster with Q4_K_M vs Q5_K_M
+2. **VRAM is identical:** Both models use ~50.7 GB because VRAM is dominated by KV cache and context window, not model weights. The 3.2 GB difference in model size is negligible
+3. **Prompt processing is marginally faster with Q5:** 272.1 vs 264.8 t/s (+2.8%), but this is a one-time cost per analysis, not the bottleneck
+4. **Q8_0 not tested:** At 35.2 GB model size, Q8_0 would likely exceed available VRAM when combined with KV cache on the W7900`s 51.5 GB total
+
+**Conclusion:** Q4_K_M provides the best speed-precision trade-off for code security analysis on the W7900. The marginal precision gain from Q5_K_M does not justify the 7.5% slowdown in token generation.
+
 ### Optimization Opportunities from Profiling Data
 
 Based on the 244,233 kernel dispatch profiling data, we identify the following optimization opportunities:
