@@ -85,7 +85,7 @@ Static Analyzer  Semantic Analyzer
     (GPU + LLM + Local SQLite)
         ↓
     Agent 4                     Structured reports
-    Report Generator           (JSON + Markdown + Terminal)
+    Report Generator           (JSON + Markdown + Terminal + SARIF)
     (CPU)
         ↓
   ┌─────────────┐
@@ -175,6 +175,7 @@ INIT → PARSE → ANALYZE → VERIFY → REPORT → DONE
 - **JSON:** Machine-readable, API-friendly
 - **Markdown:** Human-readable, with CWE/CVE clickable links
 - **Rich Terminal:** Color-coded, severity-sorted, with fix suggestion tree
+- **SARIF:** Industry-standard static analysis report format
 - **External References:** CWE MITRE links, NVD CVE links
 
 ---
@@ -318,6 +319,7 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 | Component | Technology |
 |-----------|-----------|
 | Language | Python 3.12 |
+| Output Formats | JSON, Markdown, Rich terminal, SARIF |
 | LLM | Qwen2.5-Coder-32B-Instruct (GGUF Q4_K_M) |
 | LLM Runtime | llama.cpp with HIP backend |
 | Static Analysis | Regex + Semgrep |
