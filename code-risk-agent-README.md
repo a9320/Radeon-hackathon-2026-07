@@ -239,6 +239,10 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+>
+> **CPU Baseline:** Measured on the same Radeon Cloud container (CPU-only mode, no GPU offload). The CPU inference used llama.cpp's CPU backend with the same Q4_K_M GGUF model. This provides a fair same-environment comparison — the 15.4× speedup reflects the GPU's contribution, not a weak CPU baseline.
+>
+> **GPU:** AMD Radeon Pro W7900 (RDNA 3, 48GB GDDR6), ROCm 7.2.4, HIP backend via llama.cpp
 
 #### Why This Matters for Code Security Analysis
 
