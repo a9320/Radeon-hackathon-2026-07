@@ -313,7 +313,99 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 
 ---
 
-## 10. Team
+## 10. Reproducibility & Verification
+
+### Environment Requirements
+
+| Component | Requirement |
+|-----------|------------|
+| GPU | AMD Radeon Pro W7900 (48GB) or equivalent |
+| ROCm | 7.2.4 (7.2.1 will NOT work — HIP flag changed) |
+| Python | 3.12 |
+| System | Linux (Ubuntu 22.04+ recommended) |
+| Disk | 25GB+ (model + CVE database) |
+
+### Build & Run Steps
+
+```bash
+# 1. Clone repository
+git clone https://github.com/a9320/code-risk-agent.git
+cd code-risk-agent
+
+# 2. Install Python dependencies
+pip install -e .
+
+# 3. Build llama.cpp with HIP backend (CRITICAL: use GGML_HIP, not GGML_HIPBLAS)
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+ROCM_PATH=/opt/rocm-7.2.4 cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
+cmake --build build --config Release -j$(ncpu)
+cd ..
+
+# 4. Download model
+huggingface-cli download Qwen/Qwen2.5-Coder-32B-Instruct-GGUF \
+  qwen2.5-coder-32b-instruct-q4_k_m.gguf --local-dir models/
+
+# 5. Build local CVE database
+python scripts/download_cve_data.py --years 2023 2024 2025 2026
+
+# 6. Run tests
+pytest  # 51 tests, all should pass
+
+# 7. Run analysis
+python main.py analyze tests/test_cases/ --output terminal
+# Expected: 47-48 risks detected in ~18 minutes
+```
+
+### Performance Verification
+
+```bash
+# Start llama-server with GPU
+./llama.cpp/build/bin/llama-server \
+  -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf \
+  -ngl 999 -fa 1 --host 0.0.0.0 --port 8080
+
+# Verify GPU is being used
+rocm-smi  # Should show ~19.6GB VRAM usage
+
+# Test inference speed
+curl http://localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
+# Expected: ~105 t/s token generation
+```
+
+### Zero Network Calls Verification
+
+```bash
+# Monitor network during full test suite
+sudo tcpdump -i any -n "tcp and not src host 127.0.0.1 and not dst host 127.0.0.1" -w monitor.pcap &
+TCPDUMP_PID=$!
+
+# Run full analysis
+python -m pytest tests/ -v
+python main.py analyze tests/test_cases/ --output results.json
+
+# Stop monitoring
+kill $TCPDUMP_PID
+tcpdump -r monitor.pcap -n
+# Expected: empty output (zero outbound connections)
+```
+
+### Expected Results
+
+| Metric | Expected Value |
+|--------|---------------|
+| Unit tests | 51/51 passing |
+| E2E risks detected | 47-48 |
+| E2E duration | ~18 minutes |
+| GPU token generation | ~105 t/s |
+| CPU token generation | ~6.8 t/s |
+| Speedup | ~15.4× |
+| VRAM usage | ~19.6 GB (41%) |
+| Network calls | 0 |
+
+---
+
+## 11. Team
 
 | Member | Role | Strengths |
 |--------|------|-----------|
@@ -321,7 +413,7 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 
 ---
 
-## 11. Future Work
+## 12. Future Work
 
 - **Semgrep integration in Radeon Cloud container** — install in venv for full pipeline
 - **Continuous batching deployment** — continuous batching for higher throughput
