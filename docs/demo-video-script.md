@@ -3,7 +3,7 @@
 > Duration: 3 min 35 sec (215s) + 25s buffer = 4 min max
 > Format: Terminal recording + narration
 > Language: English
-> Version: v4 (2026-07-19) — Resolves all5 remaining risks from Kimi review
+> Version: v4 (2026-07-19) — Resolves all 5 remaining risks from Kimi review
 
 ---
 
@@ -33,7 +33,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Part B: Phase 1-2 — Static Analysis (15s)
 
-**[Screen: Terminal showing Phase1 and Phase2 output]**
+**[Screen: Terminal showing Phase 1 and Phase 2 output]**
 
 > "Phase 1: Pattern matching for buffer overflows, command injection, deserialization. Fast, CPU-only. Found 18 initial risks across our test suite of 5 vulnerability samples — both C and Python files."
 
@@ -49,7 +49,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Part D: Phase 3-4 — AI Analysis (20s)
 
-**[Screen: Terminal showing LLM calls and Agent3 output]**
+**[Screen: Terminal showing LLM calls and Agent 3 output]**
 
 > "Phase 3: The LLM reads the code like a human auditor. It generates attack scenarios — 'An attacker can inject arbitrary commands through the host parameter.'"
 
@@ -71,13 +71,13 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 ### Part A: Overview (10s)
 
-**[Screen: Simple pipeline diagram — just Agent1 → Agent2 → Agent3 → Agent4, left to right]**
+**[Screen: Simple pipeline diagram — just Agent 1 → Agent 2 → Agent 3 → Agent 4, left to right]**
 
 > "Four specialized agents in an orchestrated pipeline. Let me show you the key differentiators."
 
 ### Part B: Agent 2 — Semantic Analysis (10s)
 
-**[Screen: Highlight Agent2, show LLM inference output]**
+**[Screen: Highlight Agent 2, show LLM inference output]**
 
 > "Agent 2 runs Qwen2.5-Coder-32B on the AMD GPU. It understands code logic, not just patterns. It can find vulnerabilities that no regex will ever catch."
 
@@ -97,7 +97,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 > "Third: local CVE database query — real CVE numbers, real CVSS scores."
 
-**[Screen: Show Agent3 finding missed risks]**
+**[Screen: Show Agent 3 finding missed risks]**
 
 > "And the self-reflection loop. Agent 3 asks: 'Did I miss anything?' In our tests, it found 4 vulnerabilities the previous agents missed. And it automatically suppressed 1 known false positive."
 
@@ -164,8 +164,8 @@ python3 main.py analyze tests/test_cases/ --output terminal
 - [ ] rocm-smi running in background (tmux split pane)
 - [ ] Practice narration 2-3 times
 - [ ] Background music: subtle, tech-focused, not distracting
-- [ ] Record Scene2 and Scene3 first (don't depend on GPU)
-- [ ] Record Scene4 last (depends on GPU availability)
+- [ ] Record Scene 2 and Scene 3 first (don't depend on GPU)
+- [ ] Record Scene 4 last (depends on GPU availability)
 
 ### GPU Fallback Plans
 
@@ -187,7 +187,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 ### Key Moments to Highlight
 1. **XZ Utils story** — establishes stakes in 20 seconds
 2. **Semgrep vs CodeRisk comparison** — shows differentiation
-3. **Agent3 finding missed risks** — demonstrates intelligence
+3. **Agent 3 finding missed risks** — demonstrates intelligence
 4. **Before/after code fix** — shows actionable output
 5. **Memory recall** — demonstrates learning
 6. **15x GPU speedup** — tangible performance benefit
@@ -198,7 +198,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 |-------|--------|---------|
 | 1. Problem | 20s | XZ Utils + local AI pitch |
 | 2. Demo | 75s | Command + phases + comparison + report |
-| 3. Architecture | 60s | Agent2 + Agent3 + memory |
+| 3. Architecture | 60s | Agent 2 + Agent 3 + memory |
 | 4. Performance | 45s | rocm-smi + numbers + build story |
 | 5. Closing | 15s | Summary + repo |
 | **Total** | **215s** | **3:35** |
