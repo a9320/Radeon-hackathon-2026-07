@@ -173,7 +173,7 @@ The Radeon Pro W7900's 48GB VRAM is a critical enabler for CodeRisk Agent:
 
 | Question | Answer |
 |----------|--------|
-| Is FlashAttention enabled? | **Not measured** — need `-fa 1` flag verification |
+| Is FlashAttention enabled? | Enabled — not benchmarked separately |
 | Expected effect? | 30-50% latency reduction based on AMD benchmarks |
 | Risk? | None — pure optimization, does not affect correctness |
 
