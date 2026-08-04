@@ -38,6 +38,21 @@ Modern enterprises face a critical tension: they need AI-powered code security a
 
 **The gap:** Existing tools like Semgrep find known patterns but miss logic vulnerabilities. Cloud AI understands code but requires uploading it. There is no solution that combines deep AI analysis with local-only execution.
 
+### Comparison with Existing Tools
+
+| Capability | Semgrep | Snyk | CodeQL | GitHub Copilot | **CodeRisk Agent** |
+|------------|---------|------|--------|----------------|--------------------|
+| Local execution | ✅ | ❌ | ✅ | ❌ | ✅ |
+| LLM semantic analysis | ❌ | ❌ | ❌ | ✅ | ✅ |
+| CVE/NVD integration | ❌ | ✅ | ❌ | ❌ | ✅ (local SQLite) |
+| Self-learning memory | ❌ | ❌ | ❌ | ❌ | ✅ (dual memory) |
+| Triple cross-validation | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Evidence chain | Pattern | Pattern | Pattern | Black box | **Full traceability** |
+| Privacy | ✅ | ❌ | ✅ | ❌ | ✅ |
+| GPU acceleration | ❌ | ❌ | ❌ | N/A | ✅ (ROCm/HIP) |
+
+**Key differentiator:** CodeRisk Agent is the only tool that combines LLM-powered semantic analysis with local-only execution and a self-learning memory system. Existing tools are either local-but-shallow (Semgrep, CodeQL) or smart-but-cloud (Snyk, Copilot).
+
 ---
 
 ## 3. Solution Architecture
