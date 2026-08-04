@@ -327,7 +327,7 @@ Language coverage (C + Python) was a deliberate scope decision: **deep rule qual
 | Memory | JSON-based dual memory system |
 | CLI | Rich terminal UI |
 | Testing | pytest |
-| GPU | AMD Radeon Pro W7900 + ROCm 7.2.4 |
+| GPU | AMD Radeon Pro W7900 (48GB GDDR6) + ROCm 7.2.4 |
 
 ---
 
