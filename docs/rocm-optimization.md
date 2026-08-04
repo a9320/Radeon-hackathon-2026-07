@@ -95,12 +95,12 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 628 t/s | — |
-| VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
+| Prompt processing | — | 667 t/s | — |
+| VRAM usage | — | 98.5% (~50.7 GB / 51.5 GB) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+> (Radeon Pro W7900, 51.5GB VRAM, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
 
 ---
 
