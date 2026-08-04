@@ -257,6 +257,19 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 - CVE-2003-0791 (Deserialization, CVSS 9.8)
 - CVE-2002-0159 (Format string, CVSS 7.5)
 
+### 6.4 Real-World Detection Results
+
+CodeRisk Agent was validated against live targets to confirm real-world detection capability:
+
+| Target | Finding | Verification | Status |
+|--------|---------|-------------|--------|
+| testasp.vulnweb.com | SQL Injection (boolean-based blind) | Manual confirmation with crafted payloads | ✅ Confirmed |
+| testasp.vulnweb.com | XSS (reflected) | Payload reflected in response | ✅ Confirmed |
+| jxnu.edu.cn | SVN repository exposure (.svn/entries) | Directory listing accessible | ⚠️ Temporarily exposed, later 404 |
+| demo.testfire.net | Known vulnerable test app | Full pipeline scan | ✅ All agents operational |
+
+**Key insight:** The SQLi detection on testasp.vulnweb.com validated the entire Agent 1→2→3 pipeline — Agent 1 flagged the pattern, Agent 2 confirmed via LLM analysis, Agent 3 cross-referenced with CVE data. This is not a synthetic test case; it is a real-world vulnerable target from the OWASP Vulnerable Web Applications Directory.
+
 ---
 
 ## 7. Feature Completeness
