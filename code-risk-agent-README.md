@@ -13,7 +13,7 @@
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 105 t/s (15.4× vs CPU) |
 | Prompt Processing | 667 t/s |
-| VRAM Usage | 19.6 GB (41% of 48GB) |
+| VRAM Usage | 50.7 GB (98.5% of 51.5GB) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
 | Network Calls at Runtime | Zero (verified by tcpdump) |
@@ -307,7 +307,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
+| VRAM usage | — | 98.5% (~50.7 GB / 51.5 GB) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
 
