@@ -3,7 +3,7 @@ name = "code-risk-agent"
 version = "1.0"
 description = "AI-powered code quality and risk analysis agent"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [
     {name = "Yang Weike"}
