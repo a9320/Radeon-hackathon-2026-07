@@ -73,7 +73,7 @@ Static Analyzer  Semantic Analyzer
     (GPU + LLM + Local DB)
         ↓
     Agent 4                     ← Structured reports
-    Report Generator            (JSON + Markdown + Terminal)
+    Report Generator            (JSON + Markdown + Terminal + SARIF)
         ↓
   ┌─────────────┐
   │ Memory Layer │  Correct memory + Error memory
@@ -88,7 +88,7 @@ Static Analyzer  Semantic Analyzer
 | **Agent 1: Static Analyzer** | Pattern matching | CPU | 27 detection rules (buffer overflow, format string, double free, command injection, etc.) |
 | **Agent 2: Semantic Analyzer** | LLM-driven analysis | GPU | Validates findings, discovers missed vulnerabilities, generates attack scenarios |
 | **Agent 3: Deep Verifier** | Triple cross-validation | GPU + CPU | CWE knowledge base + local CVE database + self-reflection loop |
-| **Agent 4: Report Generator** | Output formatting | CPU | JSON, Markdown, Rich terminal with CWE/CVE clickable links |
+| **Agent 4: Report Generator** | Output formatting | CPU | JSON, Markdown, Rich terminal, SARIF with CWE/CVE clickable links |
 
 ### What Makes It Different
 
@@ -195,7 +195,7 @@ code-risk analyze <path> [options]
 Options:
   --no-ai                   Disable LLM semantic analysis (fast, CPU-only)
   --semgrep-config <rules>  Semgrep rules (default: p/default)
-  --output <format>         Output: terminal|json|md|all (default: terminal)
+  --output <format>         Output: terminal|json|md|sarif|all (default: terminal)
 ```
 
 ---
@@ -465,7 +465,7 @@ system(buf);  // Sink: command execution
 | CVE Database | Local SQLite (pre-downloaded from NVD) |
 | Dependency Scan | Local OSV data + fallback dictionary |
 | Memory | JSON-based dual memory system |
-| Output Formats | JSON, Markdown, Rich terminal |
+| Output Formats | JSON, Markdown, Rich terminal, SARIF |
 | CLI | Rich terminal UI |
 | GPU | AMD Radeon Pro W7900 (48GB) + ROCm 7.2.4 |
 
