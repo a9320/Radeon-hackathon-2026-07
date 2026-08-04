@@ -244,6 +244,62 @@ Total kernel dispatches: **244,233**
 3. **Quantized inference dominates:** 62.2% of dispatches are for quantized matrix operations (Q4_K + Q6_K + quantization), confirming efficient use of the Q4_K_M GGUF format
 4. **RMS Normalization overhead:** 10.4% of dispatches for normalization suggests potential optimization opportunity (fused kernels)
 
+
+### Optimization Opportunities from Profiling Data
+
+Based on the 244,233 kernel dispatch profiling data, we identify the following optimization opportunities:
+
+**1. Quantization Overhead (31.1% — 75,859 dispatches)**
+
+`quantize_q8_1` (FP16→INT8 conversion) accounts for the single largest category of kernel dispatches. This is inherent to the Q4_K_M GGUF format — every matrix-vector multiply requires dequantization before computation.
+
+- **Current state:** Separate quantization and matmul kernels dispatched sequentially
+- **Opportunity:** A fused dequantization+matmul kernel could eliminate the separate quantization pass, potentially reducing total dispatch count by ~25%
+- **Complexity:** Requires custom HIP kernel development (P3 priority)
+- **Trade-off:** Fused kernels reduce dispatch overhead but increase kernel complexity and may not improve arithmetic intensity
+
+**2. Matrix-Vector Multiply Dominance (31.1% — 75,858 dispatches)**
+
+The `mul_mat_vec_q` kernels (Q4_K: 63,076 + Q6_K: 12,782) dominate compute time. Each transformer layer performs multiple matrix-vector multiplications for attention projections and feed-forward networks.
+
+- **Current state:** llama.cpp uses quantized GEMV kernels optimized for GGML types
+- **Opportunity:** HIPBLASlt could provide hardware-tuned matrix operations for RDNA 3
+- **Assessment:** llama.cpp`s kernels are already well-optimized; custom kernels unlikely to yield significant improvement without substantial engineering effort
+
+**3. FlashAttention Confirmed Active (10.3% — 25,178 dispatches)**
+
+FlashAttention operations (`flash_attn_tile` + `flash_attn_combine_results`) account for 10.3% of all dispatches. This confirms that:
+
+- FlashAttention is actively used during inference (not just enabled in config)
+- The W7900`s RDNA 3 architecture supports FlashAttention natively
+- Attention computation is efficient — 10.3% for attention vs 31.1% for matmul suggests good algorithmic balance
+
+**4. Memory Transfer Efficiency (0.9% — 2,269 dispatches)**
+
+Memory copy operations (`copyBuffer` + `fillBufferAligned`) account for only 0.9% of total dispatches. This indicates:
+
+- The W7900`s 864 GB/s memory bandwidth is not saturated
+- The GPU is compute-bound, not memory-bound
+- No immediate optimization needed for memory transfers
+
+**5. Normalization and Position Encoding (20.8% — 50,810 dispatches)**
+
+RMS normalization (25,504) and rotary position embedding (25,306) together account for ~21% of dispatches. These are relatively lightweight operations but dispatched frequently (once per layer per token).
+
+- **Opportunity:** Fusing normalization with adjacent operations (e.g., norm+quantize) could reduce dispatch count
+- **Assessment:** Low priority — these operations are already fast per-dispatch
+
+### Recommended Optimization Roadmap (Updated)
+
+| Priority | Optimization | Expected Impact | Implementation Effort |
+|----------|-------------|----------------|----------------------|
+| P1 | KV cache tuning for code analysis workloads | Better context utilization | Low — config change |
+| P1 | MIOpen exhaustive kernel search | 0-5% speedup | Low — environment variable |
+| P2 | ROCm environment variable tuning (SDMA, heaps) | 0-3% speedup | Low — environment variable |
+| P2 | Quantization comparison (Q4/Q5/Q8) | Informed model selection | Medium — download + benchmark |
+| P3 | Fused dequantization+matmul kernel | ~25% dispatch reduction | Very High — custom HIP kernel |
+| P3 | HIPBLASlt integration | Potentially faster GEMV | High — llama.cpp modification |
+
 ### Profiling Method
 
 | Parameter | Value |
