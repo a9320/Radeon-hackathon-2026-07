@@ -254,7 +254,7 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 All performance data was collected using the following methodology:
 
-1. **Environment:** AMD Radeon Cloud container with Radeon Pro W7900 (48GB) and ROCm 7.2.4
+1. **Environment:** AMD Radeon Cloud container with Radeon Pro W7900 (48GB GDDR6, RDNA 3), ROCm 7.2.4, AMD EPYC 9334 32-Core (128 threads, 2 sockets), 503 GB RAM
 2. **Model:** Qwen2.5-Coder-32B-Instruct, Q4_K_M GGUF quantization (19.6 GB)
 3. **Inference Engine:** llama.cpp with HIP backend (`GGML_HIP=ON`), built in Release mode
 4. **Server Configuration:** `llama-server -m <model> -ngl 999 -fa 1 -c 4096`
