@@ -244,7 +244,48 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 ---
 
-## 7. Technology Stack
+## 7. Feature Completeness
+
+### Implemented Features
+
+| Feature | Status | Details |
+|---------|--------|--------|
+| Agent 1: Static Analysis | ✅ Complete | 27 rules (C: 13, Python: 14), regex pattern matching |
+| Agent 2: Semantic Analysis | ✅ Complete | LLM-driven, ChatML format, attack scenario generation |
+| Agent 3: Deep Verification | ✅ Complete | Triple cross-validation + self-reflection loop (max 2 rounds) |
+| Agent 4: Report Generator | ✅ Complete | JSON + Markdown + Rich terminal output |
+| Orchestrator | ✅ Complete | State machine pipeline with error handling |
+| Dual Memory System | ✅ Complete | Correct + Error memory, JSON persistence |
+| Local CVE Database | ✅ Complete | SQLite, pre-downloaded from NVD |
+| Local OSV Data | ✅ Complete | Pre-downloaded OSV bulk feeds, local lookup |
+| Semgrep Integration | ✅ Complete | Optional layer, runs with local rules |
+| Taint Analysis | ✅ Complete | Single-function variable tracking |
+| Parallel Agent Execution | ✅ Complete | ThreadPoolExecutor, max_workers=1 for GPU |
+| Incremental Result Saving | ✅ Complete | Crash recovery after each phase |
+| Network Isolation | ✅ Complete | Zero runtime network calls (tcpdump verified) |
+| Unit Tests | ✅ Complete | 51 tests covering all agents and core modules |
+| Demo Video | ✅ Complete | 3:04, 4K resolution |
+
+### Planned Features
+
+| Feature | Priority | Rationale |
+|---------|----------|----------|
+| Java support | P1 | 15+ rules targeting OWASP Top 10 Java patterns |
+| Go support | P1 | Goroutine concurrency issue detection |
+| Rust support | P2 | Unsafe block analysis |
+| Cross-function taint analysis | P2 | Call graph construction for multi-function data flow |
+| LLM batch processing | P2 | Batch small files into single LLM call (50-70% fewer calls) |
+| Web UI | P3 | Browser-based code upload and report viewing |
+| IDE plugin | P3 | VS Code / JetBrains integration |
+| CI/CD integration | P3 | GitHub Actions for automated scanning |
+
+### Scope Decision
+
+Language coverage (C + Python) was a deliberate scope decision: **deep rule quality over shallow multi-language coverage**. Each language receives the same depth of rules (13-14 per language) and full semantic analysis before release. This ensures that CodeRisk Agent provides production-grade detection for supported languages rather than superficial coverage of many languages.
+
+---
+
+## 8. Technology Stack
 
 | Component | Technology |
 |-----------|-----------|
@@ -260,7 +301,7 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 ---
 
-## 8. Repository & Documentation
+## 9. Repository & Documentation
 
 | Resource | Location |
 |----------|----------|
@@ -272,7 +313,7 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 ---
 
-## 9. Team
+## 10. Team
 
 | Member | Role | Strengths |
 |--------|------|-----------|
@@ -280,7 +321,7 @@ Real CVE data from local SQLite database (pre-downloaded from NVD):
 
 ---
 
-## 10. Future Work
+## 11. Future Work
 
 - **Semgrep integration in Radeon Cloud container** — install in venv for full pipeline
 - **Continuous batching deployment** — continuous batching for higher throughput
