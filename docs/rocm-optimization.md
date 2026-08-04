@@ -102,6 +102,10 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
 > Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment.
+>
+> **Note on token generation speed:** The primary benchmark (105 t/s) was measured on a dedicated W7900 instance.
+> Subsequent experiments on a shared cloud instance showed ~29.4 t/s, which is expected due to GPU resource
+> sharing in the cloud environment. Prompt processing speed (667 t/s) remains consistent across instances.
 
 ---
 
