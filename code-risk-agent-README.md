@@ -202,6 +202,8 @@ Options:
 
 ## Example Output
 
+![CodeRisk Agent Analysis Output](docs/assets/analysis_output_hd.png)
+
 ```
 ═══════════════════════════════════════════════════════════
   CodeRisk Agent — Analysis Report
@@ -232,6 +234,8 @@ Options:
 ---
 
 ## ROCm GPU Acceleration
+
+![GPU Performance During Analysis](docs/assets/gpu_performance_hd.png)
 
 CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
@@ -297,11 +301,17 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | **LLM response_format** | Disabled (JSON mode) | llama-server does not support this parameter |
 
 ### Performance
+
+![GPU vs CPU Performance Comparison](docs/assets/gpu_comparison_hd.png)
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 628 t/s | — |
 | VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
+
+![Token Generation Speed](docs/assets/token_speed_hd.png)
+
+![Prompt Processing Speed](docs/assets/prompt_speed_hd.png)
 
 ### Build llama.cpp with ROCm
 
