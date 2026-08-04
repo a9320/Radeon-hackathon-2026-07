@@ -9,11 +9,11 @@
 | Metric | Value |
 |--------|-------|
 | Model | Qwen2.5-Coder-32B-Instruct (32B parameters) |
-| GPU | AMD Radeon Pro W7900 (48GB VRAM) |
+| GPU | AMD Radeon Pro W7900 (48GB GDDR6) |
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 105 t/s (15.4× vs CPU) |
 | Prompt Processing | 667 t/s |
-| VRAM Usage | 50.7 GB (98.5% of 51.5GB) |
+| VRAM Usage | 50.7 GB (98.5%) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
 | Network Calls at Runtime | Zero (verified by tcpdump) |
@@ -244,7 +244,9 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 > CodeRisk Agent is optimized across the full AMD software stack: ROCm 7.2.4, HIP backend, MIOpen auto-tuning, and RDNA 3 architecture. See [AMD Ecosystem Integration](docs/rocm-optimization.md#amd-ecosystem-integration) for details.
 
 > All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+> (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend).
+> Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment
+> (may include shared system memory beyond the 48 GB physical GDDR6).
 >
 > **CPU Baseline:** Measured on the same Radeon Cloud container (CPU-only mode, no GPU offload). The CPU inference used llama.cpp's CPU backend with the same Q4_K_M GGUF model. This provides a fair same-environment comparison — the 15.4× speedup reflects the GPU's contribution, not a weak CPU baseline.
 >
@@ -292,9 +294,9 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | Optimization | Decision | Measured Effect |
 |-------------|----------|----------------|
 | **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s |
-| **FlashAttention** | `-fa 1` flag | Not benchmarked separately |
+| **FlashAttention** | `-fa 1` flag | Confirmed active (25,178 kernel dispatches, 10.3%) |
 | **KV Cache** | `-c 4096` for stable long-context | Enables 128K context window |
-| **Q4_K_M quantization** | 4-bit GGUF | 19.6 GB VRAM vs 64 GB full precision |
+| **Q4_K_M quantization** | 4-bit GGUF | 19.6 GB model size vs 64 GB full precision |
 | **MIOpen auto-tuning** | Enabled by default | First-run slow, subsequent runs fast |
 | **Concurrent agents** | Agent 1+2 parallel, Agent 3 sequential | Prevents VRAM contention between LLM inference |
 | **Build type** | Release mode | Measurable improvement over Debug |
@@ -307,7 +309,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 |--------|-----|---------------|---------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 98.5% (~50.7 GB / 51.5 GB) | — |
+| VRAM usage | — | 98.5% (~50.7 GB) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
 
@@ -490,13 +492,13 @@ system(buf);  // Sink: command execution
 | Language | Python 3.12 |
 | LLM | Qwen2.5-Coder-32B-Instruct (GGUF Q4_K_M) |
 | LLM Runtime | llama.cpp with HIP backend |
-| Static Analysis | Regex + Semgrep |
+| Static Analysis | Regex + Tree-sitter + Semgrep |
 | CVE Database | Local SQLite (pre-downloaded from NVD) |
 | Dependency Scan | Local OSV data + fallback dictionary |
 | Memory | JSON-based dual memory system |
 | Output Formats | JSON, Markdown, Rich terminal, SARIF |
 | CLI | Rich terminal UI |
-| GPU | AMD Radeon Pro W7900 (48GB) + ROCm 7.2.4 |
+| GPU | AMD Radeon Pro W7900 (48GB GDDR6) + ROCm 7.2.4 |
 
 ---
 
