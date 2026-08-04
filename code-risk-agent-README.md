@@ -261,6 +261,22 @@ All performance data was collected using the following methodology:
 
 > All benchmarks are reproducible using the build instructions in the [ROCm Optimization](docs/rocm-optimization.md) document and the test cases in `tests/test_cases/`.
 
+### Run Benchmark
+
+Reproduce all performance data with the included benchmark script:
+
+```bash
+# Start llama-server (GPU mode)
+./build/bin/llama-server -m models/qwen2.5-coder-32b-instruct-q4_k_m.gguf -ngl 999 -fa 1
+
+# Run benchmark (in another terminal)
+python scripts/benchmark.py --server-url http://localhost:8080
+
+# Results saved to benchmark_results.json
+```
+
+Expected output includes token generation speed, prompt processing speed, VRAM usage, E2E pipeline time, and network isolation verification.
+
 #### Why This Matters for Code Security Analysis
 
 - **Real-time feedback:** Developers get vulnerability reports in seconds, not minutes — enabling security analysis within the development workflow
