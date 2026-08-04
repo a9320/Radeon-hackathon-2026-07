@@ -41,6 +41,23 @@ cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
 
 **Takeaway:** When debugging "GPU not being used" issues with ROCm, always check if build flags have been renamed between major ROCm versions. Silent fallback is more dangerous than an explicit error — it masks the problem behind seemingly functional (but slow) inference.
 
+### Why llama.cpp over vLLM
+
+We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decision to use llama.cpp was based on the following technical considerations:
+
+| Factor | llama.cpp (HIP) | vLLM (ROCm) | Decision |
+|--------|-----------------|-------------|----------|
+| GGUF Support | ✅ Native | ❌ Requires conversion | **llama.cpp** — our Q4_K_M GGUF model works out of the box |
+| VRAM Efficiency | ✅ 19.6 GB (Q4_K_M) | ⚠️ Higher overhead (KV cache pre-allocation, CUDA graphs) | **llama.cpp** — 32B model fits comfortably in 48GB with room for future expansion |
+| ROCm 7.2.4 Compatibility | ✅ Well-tested | ⚠️ ROCm support still maturing; 7.x compatibility uncertain | **llama.cpp** — HIP backend stable across ROCm versions |
+| Build Complexity | ✅ cmake + make | ⚠️ Multiple dependencies (flash-attn, triton, etc.) | **llama.cpp** — simpler deployment for local single-user scenario |
+| Multi-user Serving | ❌ Not designed for this | ✅ Continuous batching, PagedAttention | N/A — CodeRisk Agent is a single-user local tool |
+| FlashAttention | ✅ `-fa 1` flag | ✅ Built-in | Tie |
+
+**Key Insight:** vLLM's strengths (continuous batching, multi-user serving, high-throughput inference) are designed for server deployment scenarios. CodeRisk Agent is a **single-user, local-first security analysis tool** — the overhead and complexity of vLLM would not provide meaningful benefits while increasing deployment friction.
+
+**Trade-off Acknowledged:** vLLM's PagedAttention could improve throughput for batch file analysis. This is noted in our Future Optimization Roadmap as a potential enhancement for high-volume scanning scenarios.
+
 ---
 
 ## Optimization Strategy (3 Layers)
