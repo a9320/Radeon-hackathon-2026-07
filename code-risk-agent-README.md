@@ -237,6 +237,8 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 ### Performance Benchmark
 
+> CodeRisk Agent is optimized across the full AMD software stack: ROCm 7.2.4, HIP backend, MIOpen auto-tuning, and RDNA 3 architecture. See [AMD Ecosystem Integration](docs/rocm-optimization.md#amd-ecosystem-integration) for details.
+
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
 >
