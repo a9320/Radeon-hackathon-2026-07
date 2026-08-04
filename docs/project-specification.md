@@ -244,7 +244,7 @@ cmake --build build --config Release -j$(nproc)
 | Agent 1: Static | ✅ |5 files, 18 risks |
 | Agent 2: LLM | ✅ |10 calls, 11,362 tokens |
 | Agent 3: Verifier | ✅ |4 missed risks found, 1 false positive suppressed |
-| Agent 4: Report | ✅ | JSON + Markdown + Terminal |
+| Agent 4: Report | ✅ | JSON + Markdown + Terminal + SARIF |
 | Memory Layer | ✅ |17 patterns recalled |
 | CVE Client | ✅ | Local SQLite queries successful |
 
@@ -282,7 +282,7 @@ CodeRisk Agent was validated against live targets to confirm real-world detectio
 | Agent 1: Static Analysis | ✅ Complete | 27 rules (C: 13, Python: 14), regex pattern matching |
 | Agent 2: Semantic Analysis | ✅ Complete | LLM-driven, ChatML format, attack scenario generation |
 | Agent 3: Deep Verification | ✅ Complete | Triple cross-validation + self-reflection loop (max 2 rounds) |
-| Agent 4: Report Generator | ✅ Complete | JSON + Markdown + Rich terminal output |
+| Agent 4: Report Generator | ✅ Complete | JSON + Markdown + Rich terminal, SARIF output |
 | Orchestrator | ✅ Complete | State machine pipeline with error handling |
 | Dual Memory System | ✅ Complete | Correct + Error memory, JSON persistence |
 | Local CVE Database | ✅ Complete | SQLite, pre-downloaded from NVD |
