@@ -321,7 +321,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 # Clone and build with HIP backend
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
-ROCM_PATH=/opt/rocm cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
+ROCM_PATH=/opt/rocm-7.2.4 cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
 cmake --build build --config Release -j$(nproc)
 
 # Download Qwen2.5-Coder-32B-Instruct GGUF
