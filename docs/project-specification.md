@@ -212,7 +212,7 @@ cmake --build build --config Release -j$(nproc)
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s | 105 t/s | **15.4×** |
 | Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 41% (~19.6 GB) | — |
+| VRAM usage | — | 98.5% (~50.7 GB) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
@@ -435,7 +435,7 @@ tcpdump -r monitor.pcap -n
 | GPU token generation | ~105 t/s |
 | CPU token generation | ~6.8 t/s |
 | Speedup | ~15.4× |
-| VRAM usage | ~19.6 GB (41%) |
+| VRAM usage | ~50.7 GB (98.5%) |
 | Network calls | 0 |
 
 ---
