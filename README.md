@@ -221,28 +221,35 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 ### Performance Benchmark
 
-> All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+> Measured on Radeon Pro W7900 (48GB VRAM), HIP backend.
 
 #### Inference Speed
+
+**Qwen2.5-Coder-7B-Instruct (Q4_K_M, 4.4GB)** — ROCm 7.2.4:
 
 | Mode | Speed | Latency (avg per analysis) | VRAM |
 |------|-------|---------------------------|------|
 | CPU (llama.cpp, no GPU offload) | 6.8 t/s | ~15s | 0 GB GPU (RAM only) |
 | GPU (llama.cpp, HIP backend) | 105 t/s | ~1s | 19.6 GB |
-| **Speedup** | **15.4x** | **~15x faster** | — |
+| **Speedup** | **15.4×** | **~15× faster** | — |
+
+**Qwen2.5-Coder-32B-Instruct (Q4_K_M, ~19GB)** — ROCm 7.8.0:
+
+| Mode | Speed | Prompt Processing | VRAM |
+|------|-------|-------------------|------|
+| GPU (llama.cpp, HIP backend) | 29.4 t/s | 667 t/s | 50.7 GB |
 
 #### Why This Matters for Code Security Analysis
 
 - **Real-time feedback:** Developers get vulnerability reports in seconds, not minutes — enabling security analysis within the development workflow
 - **Larger codebases:** GPU acceleration makes scanning 10,000+ line files practical. On CPU, a single large file could take 30+ minutes
-- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model at 6.8 t/s means a single analysis takes ~15 seconds vs ~1 second on GPU. For a codebase with 50 files, this is the difference between 12 minutes and 50 seconds
+- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model is impractical. On GPU (29.4 t/s), a single analysis takes ~3 seconds. For a codebase with 50 files, this is the difference between hours and minutes
 
 ### Optimization Decisions
 
 | Optimization | Decision | Measured Effect |
 |-------------|----------|----------------|
-| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s |
+| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s (7B) / 29.4 t/s (32B) |
 | **FlashAttention** | `-fa 1` flag | Not benchmarked separately |
 | **KV Cache** | `-c 4096` for stable long-context | Enables 128K context window |
 | **Q4_K_M quantization** | 4-bit GGUF | 5GB VRAM vs 32GB full precision |
@@ -253,14 +260,13 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 ### Performance
 
-> All performance data was measured on our Radeon Cloud instance
-> (Radeon Pro W7900, 48GB VRAM, ROCm 7.2.4, HIP backend).
+> Measured on Radeon Pro W7900 (48GB VRAM) with HIP backend.
 
-| Metric | CPU | AMD GPU (HIP) | Speedup |
-|--------|-----|---------------|---------|
-| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | ~40 t/s | 628 t/s | **15.7×** |
-| VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
+| Metric | CPU (7B) | GPU 7B (ROCm 7.2.4) | GPU 32B (ROCm 7.8.0) |
+|--------|---------|---------------------|----------------------|
+| Token generation | 6.8 t/s | 105 t/s (15.4×) | 29.4 t/s |
+| Prompt processing | ~40 t/s | 628 t/s | 667 t/s |
+| VRAM usage | — | 19.6 GB (41%) | 50.7 GB (98.5%) |
 
 ### Build llama.cpp with ROCm
 

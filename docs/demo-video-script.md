@@ -130,7 +130,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 | Mode | Speed |
 |------|-------|
 | CPU only | 6.8 tokens/s |
-| AMD GPU (ROCm HIP) | 105 tokens/s |
+| AMD GPU (ROCm HIP) | 105 tokens/s (7B) / 29.4 tokens/s (32B) |
 
 > "Fifteen times faster with GPU acceleration. No API calls. No cloud dependency. No data leaving your machine."
 
@@ -172,12 +172,12 @@ python3 main.py analyze tests/test_cases/ --output terminal
 **Plan A: ROCm HIP available (best case)**
 - Split screen: terminal + rocm-smi
 - Show real-time inference with GPU utilization
-- Performance data:105 t/s
+- Performance data: 105 t/s (7B model), 29.4 t/s (32B model)
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo
 - Performance data:85 t/s
-- "We evaluated three backends. Vulkan gives85 tokens per second — 5.6x faster than CPU. ROCm HIP pushes that to105 t/s. The architecture supports both."
+- "We evaluated three backends. Vulkan gives 85 tokens per second — 5.6x faster than CPU. ROCm HIP pushes that to 105 t/s with our 7B model. The architecture supports both."
 
 **Plan C: CPU only (worst case)**
 - Be honest: "In this container environment, GPU access is limited. But the architecture is designed for local GPU inference."

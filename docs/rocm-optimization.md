@@ -21,9 +21,9 @@ Initial attempts with `GGML_HIPBLAS=ON` (the 2024-2025 flag) failed.
 The correct flag for 2026 is `GGML_HIP=ON`. After using the correct flag,
 HIP compiled successfully and GPU inference is fully operational:
 
-- Token generation: 105 t/s (measured on Radeon Cloud, Radeon Pro W7900)
-- Prompt processing: 628 t/s
-- VRAM usage: 41% (~19.6 GB / 48 GB)
+- Token generation: 105 t/s (7B model, ROCm 7.2.4) / 29.4 t/s (32B model, ROCm 7.8.0)
+- Prompt processing: 628 t/s (7B) / 667 t/s (32B)
+- VRAM usage: 19.6 GB (7B) / 50.7 GB (32B)
 
 ---
 
@@ -33,7 +33,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
-| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6GB VRAM, 105-114 t/s |
+| Q4_K_M Quantization | GGUF format, 4-bit | 7B: ~19.6GB VRAM, 105 t/s / 32B: ~50.7GB VRAM, 29.4 t/s |
 | Flash Attention | llama.cpp `-fa 1` | 30-50% latency reduction |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
@@ -63,7 +63,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
-| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
+| Token generation | 6.8 t/s (7B CPU) | 105 t/s (7B) / 29.4 t/s (32B) | **15.4×** (7B) |
 | Prompt processing | — | 628 t/s | — |
 | VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
 | GPU temperature | — | 26°C | — |
@@ -95,7 +95,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 | # | Optimization | Measured Effect | Decision |
 |---|-------------|----------------|----------|
-| 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
+| 1 | GGML_HIP=ON | 6.8→105 t/s (7B, 15.4×) / 29.4 t/s (32B) | **Critical** — Without this: silent CPU fallback |
 | 2 | Q4_K_M Quantization | 32GB→19.6GB VRAM | **Necessary** — 32B model only fits in 4-bit |
 | 3 | FlashAttention (-fa 1) | [待测] | **Enabled** — Expected 30-50% latency reduction |
 | 4 | Concurrency=1 | No VRAM contention | **Required** — Two 32B inferences would exceed 48GB |
