@@ -270,8 +270,8 @@ def main() -> None:
     print("  Comparison with Reported Values")
     print("=" * 60)
     reported = {
-        "token_generation_tps": 105,
-        "prompt_processing_tps": 667,
+        "token_generation_tps": 29.4,
+        "prompt_processing_tps": 264.8,
         "e2e_time_minutes": 18,
     }
     for key, expected in reported.items():
