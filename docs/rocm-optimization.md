@@ -4,6 +4,14 @@
 
 ---
 
+## Strategic Context: ROCm at AMD's Core
+
+AMD's Q2 2026 earnings call highlighted ROCm as the company's core strategic advantage in competing with NVIDIA's CUDA ecosystem. ROCm open-source community contributions grew **10×** over the past year, reflecting rapid ecosystem maturation with production-grade tools, better hardware support, and a growing knowledge base.
+
+CodeRisk Agent directly aligns with this strategic direction: it demonstrates ROCm's capability for **local AI inference** on consumer-grade Radeon GPUs — a critical enterprise use case where source code cannot be uploaded to cloud services. While most ROCm benchmarks focus on training throughput, CodeRisk Agent proves that ROCm is equally capable for inference-heavy, real-world applications.
+
+---
+
 ## Current Environment Status
 
 | Item | Status | Notes |
