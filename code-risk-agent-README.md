@@ -13,12 +13,14 @@
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 29.4 t/s (32B, 4.3× vs CPU) / 105 t/s (7B, comparison) |
 | Prompt Processing | 264.8 t/s |
-| VRAM Usage | 50.7 GB (98.5%) |
+| VRAM Usage | ~48 GB (rocm-smi reports 51.5 GB in cloud env, see note below) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
 | Network Calls at Runtime | Zero (verified by tcpdump) |
 | Languages | C/C++, Python |
 | Team | Yang Weike (Solo Developer) |
+
+> **VRAM Note:** W7900 has 48 GB physical GDDR6. rocm-smi in the Radeon Cloud container reports 51.5 GB total (likely includes shared system memory via Resizable BAR). Actual measured usage: 50.7 GB with 32B model at ~116K context.
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -310,7 +312,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | Token generation (32B) | 6.8 t/s | 29.4 t/s | **4.3×** |
 | Token generation (7B) | — | 105 t/s | 15.4× |
 | Prompt processing (32B) | — | 264.8 t/s | — |
-| VRAM usage | — | 98.5% (~50.7 GB) | — |
+| VRAM usage | — | 50.7 GB / 51.5 GB (98.5%) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
 
