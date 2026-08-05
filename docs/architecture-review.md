@@ -12,7 +12,7 @@
 - Memory layer recalled 17 patterns
 - CVE client queried local SQLite database successfully
 - Agent 3 found 4 missed risks + suppressed 1 false positive
-- GPU inference at 105 t/s (15.4× vs CPU)
+- GPU inference at 29.4 t/s (32B, 4.3× vs CPU); 7B: 105 t/s
 
 ### Bottlenecks Identified ⚠️
 
@@ -50,7 +50,7 @@ with ThreadPoolExecutor(max_workers=4) as pool:
     static_risks = list(pool.map(static_analyzer.analyze, files))
 
 # Phase 2: Agent 2 runs all files in parallel (GPU-bound)
-with ThreadPoolExecutor(max_workers=2) as pool:  # 2 = GPU concurrency
+with ThreadPoolExecutor(max_workers=1) as pool:  # 1 = GPU concurrency (32B model VRAM constraint)
     semantic_risks = list(pool.map(
         lambda f: semantic_analyzer.analyze(f, static_risks[f]),
         files

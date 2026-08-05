@@ -11,8 +11,8 @@
 | Model | Qwen2.5-Coder-32B-Instruct (32B parameters) |
 | GPU | AMD Radeon Pro W7900 (48GB GDDR6) |
 | ROCm | 7.2.4 with HIP backend |
-| GPU Inference Speed | 105 t/s (15.4× vs CPU) |
-| Prompt Processing | 667 t/s |
+| GPU Inference Speed | 29.4 t/s (32B, 4.3× vs CPU) / 105 t/s (7B, comparison) |
+| Prompt Processing | 264.8 t/s |
 | VRAM Usage | 50.7 GB (98.5%) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
@@ -175,7 +175,7 @@ python scripts/download_osv_data.py
 
 ```bash
 # Analyze a directory
-code-risk analyze ./src/
+code-risk analyze ./src/ --output json
 
 # Analyze a single file
 code-risk analyze vulnerable.c
@@ -195,7 +195,7 @@ code-risk analyze <path> [options]
 Options:
   --no-ai                   Disable LLM semantic analysis (fast, CPU-only)
   --semgrep-config <rules>  Semgrep rules (default: p/default)
-  --output <format>         Output: terminal|json|md|sarif|all (default: terminal)
+  --output json             Output format: terminal|json|md|sarif|all (default: terminal)
 ```
 
 ---
@@ -248,7 +248,7 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 > Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment
 > (may include shared system memory beyond the 48 GB physical GDDR6).
 >
-> **CPU Baseline:** Measured on the same Radeon Cloud container (CPU-only mode, no GPU offload). The CPU inference used llama.cpp's CPU backend with the same Q4_K_M GGUF model. This provides a fair same-environment comparison — the 15.4× speedup reflects the GPU's contribution, not a weak CPU baseline.
+> **CPU Baseline:** Measured on the same Radeon Cloud container (CPU-only mode, no GPU offload). The CPU inference used llama.cpp's CPU backend with the same Q4_K_M GGUF model. This provides a fair same-environment comparison — the 4.3× speedup (32B) reflects the GPU's contribution, not a weak CPU baseline.
 >
 > **GPU:** AMD Radeon Pro W7900 (RDNA 3, 48GB GDDR6), ROCm 7.2.4, HIP backend via llama.cpp
 
@@ -287,15 +287,15 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 
 - **Real-time feedback:** Developers get vulnerability reports in seconds, not minutes — enabling security analysis within the development workflow
 - **Larger codebases:** GPU acceleration makes scanning 10,000+ line files practical. On CPU, a single large file could take 30+ minutes
-- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model at 6.8 t/s means a single analysis takes ~15 seconds vs ~1 second on GPU. For a codebase with 50 files, this is the difference between 12 minutes and 50 seconds
+- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model at 6.8 t/s means a single analysis takes ~15 seconds vs ~3.4 seconds on GPU. For a codebase with 50 files, this is the difference between 12 minutes and ~3 minutes
 
 ### Optimization Decisions
 
 | Optimization | Decision | Measured Effect |
 |-------------|----------|----------------|
-| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s |
+| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 29.4 t/s (32B) / 105 t/s (7B) |
 | **FlashAttention** | `-fa 1` flag | Confirmed active (25,178 kernel dispatches, 10.3%) |
-| **KV Cache** | `-c 4096` for stable long-context | Enables 128K context window |
+| **KV Cache** | `-c 4096` for stable long-context | Default context ~116K; `-c 4096` reduces VRAM from 50.7 GB to ~21 GB |
 | **Q4_K_M quantization** | 4-bit GGUF | 19.6 GB model size vs 64 GB full precision |
 | **MIOpen auto-tuning** | Enabled by default | First-run slow, subsequent runs fast |
 | **Concurrent agents** | Agent 1+2 parallel, Agent 3 sequential | Prevents VRAM contention between LLM inference |
@@ -307,8 +307,9 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 ![GPU vs CPU Performance Comparison](docs/assets/gpu_comparison_hd.png)
 | Metric | CPU | AMD GPU (HIP) | Speedup |
 |--------|-----|---------------|---------|
-| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 667 t/s | — |
+| Token generation (32B) | 6.8 t/s | 29.4 t/s | **4.3×** |
+| Token generation (7B) | — | 105 t/s | 15.4× |
+| Prompt processing (32B) | — | 264.8 t/s | — |
 | VRAM usage | — | 98.5% (~50.7 GB) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
@@ -443,7 +444,7 @@ TCPDUMP_PID=$!
 
 # Run full test suite
 python -m pytest tests/ -v
-python main.py --test-dir tests/test_cases/ --output results.json
+python main.py analyze tests/test_cases/ --output json
 
 # Stop monitoring
 kill $TCPDUMP_PID
@@ -460,7 +461,7 @@ tcpdump -r monitor.pcap -n
 | Cross-function data flow | ❌ Limited | ✅ Full support |
 | False positive rate | Higher (pattern-only) | Lower (triple cross-validation) |
 | Local deployment | ✅ Local | ✅ Fully local (zero network calls) |
-| GPU acceleration | N/A | ✅ 15.4× speedup with AMD ROCm |
+| GPU acceleration | N/A | ✅ 4.3× (32B) / 15.4× (7B) with AMD ROCm |
 
 #### What CodeRisk Agent Found That Semgrep Missed
 

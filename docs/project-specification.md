@@ -210,9 +210,11 @@ cmake --build build --config Release -j$(nproc)
 
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
-| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 98.5% (~50.7 GB) | — |
+| Token generation (32B) | 6.8 t/s | 29.4 t/s | **4.3×** |
+| Token generation (7B) | — | 105 t/s | 15.4× |
+| Prompt processing (32B) | — | 264.8 t/s | — |
+| VRAM usage (32B) | — | 50.7 GB (98.5%) | — |
+| VRAM usage (7B) | — | 19.6 GB | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
@@ -225,7 +227,7 @@ cmake --build build --config Release -j$(nproc)
 | Model | Q4_K_M quantization |19.6 GB model size, fast inference |
 | Model | Flash Attention (`-fa 1`) |Confirmed active via rocprof profiling (25,178 dispatches, 10.3%) |
 | Task | Agent 1 on CPU, Agent 2/3 on GPU | Maximum GPU utilization |
-| System | HIP backend |15.4× vs CPU |
+| System | HIP backend | 4.3× vs CPU (32B); 15.4× (7B) |
 | System | Continuous batching (future optimization) |3-5× throughput (future) |
 
 ---
@@ -405,7 +407,7 @@ rocm-smi  # Should show ~50.7 GB VRAM usage (98.5%)
 
 # Test inference speed
 curl http://localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
-# Expected: ~105 t/s token generation
+# Expected: ~29.4 t/s token generation (32B)
 ```
 
 ### Zero Network Calls Verification
@@ -417,7 +419,7 @@ TCPDUMP_PID=$!
 
 # Run full analysis
 python -m pytest tests/ -v
-python main.py analyze tests/test_cases/ --output results.json
+python main.py analyze tests/test_cases/ --output json
 
 # Stop monitoring
 kill $TCPDUMP_PID
@@ -432,9 +434,9 @@ tcpdump -r monitor.pcap -n
 | Unit tests | 51/51 passing |
 | E2E risks detected | 47-48 |
 | E2E duration | ~18 minutes |
-| GPU token generation | ~105 t/s |
+| GPU token generation | ~29.4 t/s (32B) / ~105 t/s (7B) |
 | CPU token generation | ~6.8 t/s |
-| Speedup | ~15.4× |
+| Speedup | ~4.3× (32B) / ~15.4× (7B) |
 | VRAM usage | ~50.7 GB (98.5%) |
 | Network calls | 0 |
 

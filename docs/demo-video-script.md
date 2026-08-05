@@ -130,9 +130,10 @@ python3 main.py analyze tests/test_cases/ --output terminal
 | Mode | Speed |
 |------|-------|
 | CPU only | 6.8 tokens/s |
-| AMD GPU (ROCm HIP) | 105 tokens/s |
+| AMD GPU (ROCm HIP, 32B) | 29.4 tokens/s |
+| AMD GPU (ROCm HIP, 7B) | 105 tokens/s |
 
-> "Fifteen times faster with GPU acceleration. No API calls. No cloud dependency. No data leaving your machine."
+> "4.3 times faster with GPU acceleration on the 32B production model. No API calls. No cloud dependency. No data leaving your machine."
 
 ### Part C: ROCm Build (15s)
 
@@ -172,7 +173,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 **Plan A: ROCm HIP available (best case)**
 - Split screen: terminal + rocm-smi
 - Show real-time inference with GPU utilization
-- Performance data: 105 t/s
+- Performance data: 29.4 t/s (32B), 105 t/s (7B)
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo
@@ -190,7 +191,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 3. **Agent 3 finding missed risks** — demonstrates intelligence
 4. **Before/after code fix** — shows actionable output
 5. **Memory recall** — demonstrates learning
-6. **15x GPU speedup** — tangible performance benefit
+6. **4.3× GPU speedup (32B)** — tangible performance benefit
 
 ### Time Budget
 

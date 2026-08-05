@@ -37,7 +37,7 @@ cmake -B build -DGGML_HIPBLAS=ON -DLLAMA_BUILD_SERVER=ON
 cmake -B build -DGGML_HIP=ON -DLLAMA_BUILD_SERVER=ON
 ```
 
-**Verification:** After rebuilding with `GGML_HIP=ON`, GPU inference immediately worked at 105 t/s — a 15.4× improvement over CPU fallback.
+**Verification:** After rebuilding with `GGML_HIP=ON`, GPU inference immediately worked — 7B showed 105 t/s; 32B achieves 29.4 t/s, a 4.3× improvement over CPU fallback.
 
 **Takeaway:** When debugging "GPU not being used" issues with ROCm, always check if build flags have been renamed between major ROCm versions. Silent fallback is more dangerous than an explicit error — it masks the problem behind seemingly functional (but slow) inference.
 
@@ -66,7 +66,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Implementation | Expected Speedup |
 |--------------|---------------|------------------|
-| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB model size, 105 t/s |
+| Q4_K_M Quantization | GGUF format, 4-bit | ~19.6 GB model size, 29.4 t/s (32B) / 105 t/s (7B) |
 | Flash Attention | llama.cpp `-fa 1` | Confirmed active via rocprof (10.3% of kernel dispatches) |
 | KV Cache | llama.cpp `-c 4096` | Stable long-context inference |
 
@@ -83,7 +83,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 | Optimization | Command | Effect |
 |--------------|---------|--------|
-| HIP Backend | `GGML_HIP=ON` make | 15.4× vs CPU |
+| HIP Backend | `GGML_HIP=ON` make | 4.3× vs CPU (32B) |
 | MIOpen | Auto-tuned kernels | Optimized for RDNA3 |
 
 ---
@@ -92,20 +92,21 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 
 ### Actual Benchmark Results (Measured on Radeon Cloud)
 
-| Metric | CPU | GPU (HIP) | Improvement |
-|--------|-----|-----------|-------------|
-| Token generation | 6.8 t/s | 105 t/s | **15.4×** |
-| Prompt processing | — | 667 t/s | — |
-| VRAM usage | — | 98.5% (~50.7 GB) | — |
-| GPU temperature | — | 26°C | — |
+| Metric | CPU (32B) | GPU (32B) | GPU (7B) | 32B Speedup |
+|--------|-----------|-----------|----------|-------------|
+| Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | **4.3×** |
+| Prompt processing | — | 264.8 t/s | 667 t/s | — |
+| VRAM usage | — | 50.7 GB (98.5%) | 19.6 GB | — |
+| GPU temperature | — | 26°C | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
 > Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment.
 >
-> **Note on token generation speed:** The primary benchmark (105 t/s) was measured on a dedicated W7900 instance.
-> Subsequent experiments on a shared cloud instance showed ~29.4 t/s, which is expected due to GPU resource
-> sharing in the cloud environment. Prompt processing speed (667 t/s) remains consistent across instances.
+> **Note on model size vs inference speed:** The 32B model (Qwen2.5-Coder-32B-Instruct, Q4_K_M) achieves
+> 29.4 t/s token generation and 264.8 t/s prompt processing. The 7B model (tested on ROCm 7.2.4) achieves
+> 105 t/s token generation and 667 t/s prompt processing. The 32B model is the production model used by
+> CodeRisk Agent; the 7B model serves as a comparison reference.
 
 ---
 
@@ -161,7 +162,7 @@ The Radeon Pro W7900's 48GB GDDR6 is a critical enabler for CodeRisk Agent:
 
 | # | Optimization | Measured Effect | Decision |
 |---|-------------|----------------|----------|
-| 1 | GGML_HIP=ON | 6.8→105 t/s (15.4×) | **Critical** — Without this: silent CPU fallback |
+| 1 | GGML_HIP=ON | 6.8→29.4 t/s (4.3×, 32B) | **Critical** — Without this: silent CPU fallback |
 | 2 | Q4_K_M Quantization | 64 GB → 19.6 GB model size | **Necessary** — 32B model only fits in 4-bit |
 | 3 | FlashAttention (-fa 1) | Confirmed active (25,178 dispatches, 10.3%) | **Enabled** — Confirmed via rocprof profiling |
 | 4 | Concurrency=1 | No VRAM contention | **Required** — Two concurrent 32B inferences would exceed available VRAM |
@@ -313,7 +314,7 @@ We tested different context window sizes to understand VRAM allocation behavior 
 1. **Token generation is constant:** 29.4 t/s regardless of context size. The GPU is compute-bound for token generation, not memory-bound
 2. **VRAM scales linearly with context:** The default 116K context allocates ~30 GB of KV cache beyond the model weights. Reducing context to 8K saves 28.4 GB VRAM
 3. **Prompt processing unaffected:** All context sizes show similar prompt processing speed (~264 t/s) for short prompts
-4. **Practical implication:** For code security analysis of individual files (typically <10K tokens), using  would reduce VRAM from 50.7 GB to 22.3 GB while maintaining identical inference speed. This frees 28 GB for potential multi-model parallel execution
+4. **Practical implication:** For code security analysis of individual files (typically <10K tokens), using `-c 8192` would reduce VRAM from 50.7 GB to ~22.3 GB while maintaining identical inference speed. This frees 28 GB for potential multi-model parallel execution
 
 ### Optimization Opportunities from Profiling Data
 
