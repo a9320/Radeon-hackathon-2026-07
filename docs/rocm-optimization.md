@@ -12,7 +12,7 @@
 | ROCm | 7.2.4 | Fully configured |
 | rocm-smi | Available | Can monitor GPU status |
 | HIP Backend | ✅ Available | GGML_HIP=ON flag |
-| CPU Inference | 6.8 t/s | Fallback mode |
+| CPU Inference | 6.8 t/s (7B) | Fallback mode |
 | Shared API | Qwen3.6-35B-A3B | Available for testing |
 
 ### HIP Backend Status
@@ -50,7 +50,7 @@ HIP compiled successfully and GPU inference is fully operational:
 
 | Optimization | Command | Effect |
 |--------------|---------|--------|
-| HIP Backend | `GGML_HIP=ON` make | 15.4x vs CPU |
+| HIP Backend | `GGML_HIP=ON` make | 7B: 15.4x vs CPU / 32B: ~4.3x |
 | vLLM Batching | Continuous batching | 3-5x throughput |
 | Prefix Caching | KV cache reuse | Reduce repeated computation |
 | MIOpen | Auto-tuned kernels | Optimized for RDNA3 |
@@ -64,8 +64,8 @@ HIP compiled successfully and GPU inference is fully operational:
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s (7B CPU) | 105 t/s (7B) / 29.4 t/s (32B) | **15.4×** (7B) |
-| Prompt processing | — | 628 t/s | — |
-| VRAM usage | — | 41% (~19.6 GB / 48 GB) | — |
+| Prompt processing | — | 628 t/s (7B) / 667 t/s (32B) | — |
+| VRAM usage | — | 19.6 GB (7B) / 50.7 GB (32B) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance

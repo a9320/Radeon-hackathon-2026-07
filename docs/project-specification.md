@@ -195,8 +195,8 @@ cmake --build build --config Release -j$(nproc)
 | Metric | CPU | GPU (HIP) | Improvement |
 |--------|-----|-----------|-------------|
 | Token generation | 6.8 t/s (7B CPU) | 105 t/s (7B) / 29.4 t/s (32B) | **15.4×** (7B) |
-| Prompt processing | — | 628 t/s | — |
-| VRAM usage | — | 24% (~5 GB) | — |
+| Prompt processing | — | 628 t/s (7B) / 667 t/s (32B) | — |
+| VRAM usage | — | 19.6 GB (7B) / 50.7 GB (32B) | — |
 | GPU temperature | — | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance

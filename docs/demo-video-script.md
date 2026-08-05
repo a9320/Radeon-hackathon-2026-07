@@ -176,7 +176,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo
-- Performance data:85 t/s
+- Performance data: 85 t/s (Vulkan, 7B model estimate)
 - "We evaluated three backends. Vulkan gives 85 tokens per second — 5.6x faster than CPU. ROCm HIP pushes that to 105 t/s with our 7B model. The architecture supports both."
 
 **Plan C: CPU only (worst case)**
