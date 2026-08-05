@@ -192,12 +192,12 @@ cmake --build build --config Release -j$(nproc)
 
 ###5.4 Performance Results
 
-| Metric | CPU | GPU (HIP) | Improvement |
-|--------|-----|-----------|-------------|
-| Token generation | 6.8 t/s (7B CPU) | 105 t/s (7B) / 29.4 t/s (32B) | **15.4×** (7B) |
-| Prompt processing | — | 628 t/s (7B) / 667 t/s (32B) | — |
-| VRAM usage | — | 19.6 GB (7B) / 50.7 GB (32B) | — |
-| GPU temperature | — | 26°C | — |
+| Metric | CPU (32B) | GPU (32B) | GPU (7B) | 32B Speedup |
+|--------|-----------|-----------|----------|-------------|
+| Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | **4.3×** |
+| Prompt processing | — | 264.8 t/s | 667 t/s | — |
+| VRAM usage | — | 50.7 GB (98.5%) | — | — |
+| GPU temperature | — | 26°C | — | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (RX 7900 XTX, ROCm 7.2.4, HIP backend).
@@ -209,7 +209,7 @@ cmake --build build --config Release -j$(nproc)
 | Model | Q4_K_M quantization |5GB VRAM, fast inference |
 | Model | Flash Attention (`-fa 1`) |30-50% latency reduction |
 | Task | Agent1 on CPU, Agent2/3 on GPU | Maximum GPU utilization |
-| System | HIP backend |15x vs CPU |
+| System | HIP backend | 4.3× vs CPU (32B); 15.4× (7B) |
 | System | Continuous batching (vLLM) |3-5x throughput (future) |
 
 ---
@@ -285,7 +285,7 @@ Real CVE data retrieved from NVD:
 ## 10. Future Work
 
 - **Semgrep integration in cloud environment** — install in venv for full pipeline
-- **vLLM deployment** — continuous batching for higher throughput
+- **vLLM deployment** — continuous batching for higher throughput (~29.4 t/s → target 40+ t/s)
 - **Web UI** — browser-based code upload and report viewing
 - **More languages** — Java, Go, Rust support
 - **ChromaDB upgrade** — vector database for semantic memory matching

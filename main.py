@@ -174,7 +174,7 @@ def cmd_info() -> None:
     table.add_row("Backends", "llama-server + llama-cpp-python (local only)")
     table.add_row("Analyzers", "Static (regex) + Semgrep + LLM semantic + Deep verifier")
     table.add_row("Languages", "C (.c/.h) + Python (.py)")
-    table.add_row("CWE Rules", "CWE-120/134/476/415/78/95/502/73/617")
+    table.add_row("CWE Rules", "CWE-120/134/476/415/78/89/95/502/73/617")
     table.add_row("Pipeline", "Orchestrator -> 4 Agents -> Report")
 
     # Read actual env config

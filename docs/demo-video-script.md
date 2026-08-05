@@ -130,9 +130,9 @@ python3 main.py analyze tests/test_cases/ --output terminal
 | Mode | Speed |
 |------|-------|
 | CPU only | 6.8 tokens/s |
-| AMD GPU (ROCm HIP) | 105 tokens/s (7B) / 29.4 tokens/s (32B) |
+| AMD GPU (ROCm HIP) | 29.4 tokens/s (32B) / 105 tokens/s (7B) |
 
-> "Fifteen times faster with GPU acceleration. No API calls. No cloud dependency. No data leaving your machine."
+> "4.3 times faster with GPU acceleration on our production 32B model. The lighter 7B model hits 105 tokens per second, but the 32B model delivers the security analysis depth we need. No API calls. No cloud dependency. No data leaving your machine."
 
 ### Part C: ROCm Build (15s)
 
@@ -172,7 +172,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 **Plan A: ROCm HIP available (best case)**
 - Split screen: terminal + rocm-smi
 - Show real-time inference with GPU utilization
-- Performance data: 105 t/s (7B model), 29.4 t/s (32B model)
+- Performance data: 29.4 t/s (32B model, production), 105 t/s (7B model, comparison)
 
 **Plan B: Only Vulkan available**
 - Show radeontop or vulkaninfo

@@ -12,7 +12,7 @@
 - Memory layer recalled 17 patterns
 - CVE client queried NVD successfully
 - Agent 3 found 4 missed risks + suppressed 1 false positive
-- GPU inference: 105 t/s (7B, 15.4× vs CPU) / 29.4 t/s (32B)
+- GPU inference: 29.4 t/s (32B, 4.3× vs CPU); 7B: 105 t/s (15.4× vs CPU)
 
 ### Bottlenecks Identified ⚠️
 

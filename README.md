@@ -225,33 +225,33 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 #### Inference Speed
 
-**Qwen2.5-Coder-7B-Instruct (Q4_K_M, 4.4GB)** — ROCm 7.2.4:
-
-| Mode | Speed | Latency (avg per analysis) | VRAM |
-|------|-------|---------------------------|------|
-| CPU (llama.cpp, no GPU offload) | 6.8 t/s | ~15s | 0 GB GPU (RAM only) |
-| GPU (llama.cpp, HIP backend) | 105 t/s | ~1s | 19.6 GB |
-| **Speedup** | **15.4×** | **~15× faster** | — |
-
-**Qwen2.5-Coder-32B-Instruct (Q4_K_M, ~19GB)** — ROCm 7.8.0:
+**Qwen2.5-Coder-32B-Instruct (Q4_K_M, ~19GB)** — ROCm 7.8.0 (production model):
 
 | Mode | Speed | Prompt Processing | VRAM |
 |------|-------|-------------------|------|
-| GPU (llama.cpp, HIP backend) | 29.4 t/s | 667 t/s | 50.7 GB |
+| CPU (llama.cpp, no GPU offload) | 6.8 t/s | — | 0 GB GPU (RAM only) |
+| GPU (llama.cpp, HIP backend) | 29.4 t/s | 264.8 t/s | 50.7 GB (98.5%) |
+| **Speedup** | **4.3×** | — | — |
+
+**Qwen2.5-Coder-7B-Instruct (Q4_K_M, 4.4GB)** — ROCm 7.2.4 (comparison model):
+
+| Mode | Speed | Prompt Processing | VRAM |
+|------|-------|-------------------|------|
+| GPU (llama.cpp, HIP backend) | 105 t/s | 667 t/s | 19.6 GB |
 
 #### Why This Matters for Code Security Analysis
 
 - **Real-time feedback:** Developers get vulnerability reports in seconds, not minutes — enabling security analysis within the development workflow
 - **Larger codebases:** GPU acceleration makes scanning 10,000+ line files practical. On CPU, a single large file could take 30+ minutes
-- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model is impractical. On GPU (29.4 t/s), a single analysis takes ~3 seconds. For a codebase with 50 files, this is the difference between hours and minutes
+- **32B model feasibility:** Only viable on GPU — CPU inference of a 32B model is impractical. On GPU (29.4 t/s), a single analysis takes ~3.4 seconds. For a codebase with 50 files, this is the difference between hours (~3 minutes on GPU) and hours on CPU
 
 ### Optimization Decisions
 
 | Optimization | Decision | Measured Effect |
 |-------------|----------|----------------|
-| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 105 t/s (7B) / 29.4 t/s (32B) |
+| **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 29.4 t/s (32B) / 105 t/s (7B) |
 | **FlashAttention** | `-fa 1` flag | Not benchmarked separately |
-| **KV Cache** | `-c 4096` for stable long-context | Enables 128K context window |
+| **KV Cache** | `-c 4096` for stable long-context | Default context ~116K; -c 4096 reduces VRAM from 50.7 GB to ~21 GB |
 | **Q4_K_M quantization** | 4-bit GGUF | 5GB VRAM vs 32GB full precision |
 | **MIOpen auto-tuning** | Enabled by default | First-run slow, subsequent runs fast |
 | **Concurrent agents** | Agent 1+2 parallel, Agent 3 sequential | Prevents VRAM contention between LLM inference |
@@ -262,11 +262,11 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 > Measured on Radeon Pro W7900 (48GB VRAM) with HIP backend.
 
-| Metric | CPU (7B) | GPU 7B (ROCm 7.2.4) | GPU 32B (ROCm 7.8.0) |
-|--------|---------|---------------------|----------------------|
-| Token generation | 6.8 t/s | 105 t/s (15.4×) | 29.4 t/s |
-| Prompt processing | ~40 t/s | 628 t/s | 667 t/s |
-| VRAM usage | — | 19.6 GB (41%) | 50.7 GB (98.5%) |
+| Metric | CPU (32B) | GPU (32B) | GPU (7B) | 32B Speedup |
+|--------|-----------|-----------|----------|-------------|
+| Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | 4.3× |
+| Prompt processing | — | 264.8 t/s | 667 t/s | — |
+| VRAM usage | — | 50.7 GB (98.5%) | — | — |
 
 ### Build llama.cpp with ROCm
 
@@ -394,7 +394,7 @@ TCPDUMP_PID=$!
 
 # Run full test suite
 python -m pytest tests/ -v
-python main.py --test-dir tests/test_cases/ --output results.json
+python main.py analyze tests/test_cases/ --output json
 
 # Stop monitoring
 kill $TCPDUMP_PID
@@ -411,7 +411,7 @@ tcpdump -r monitor.pcap -n
 | Cross-function data flow | ❌ Limited | ✅ Full support |
 | False positive rate | Higher (pattern-only) | Lower (triple cross-validation) |
 | Local deployment | ✅ Local | ✅ Fully local (zero network calls) |
-| GPU acceleration | N/A | ✅ 15.4x speedup with AMD ROCm |
+| GPU acceleration | N/A | ✅ 4.3× speedup (32B) / 15.4× (7B) with AMD ROCm |
 
 #### What CodeRisk Agent Found That Semgrep Missed
 

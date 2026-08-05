@@ -235,9 +235,9 @@ Correct + Error patterns" data-shape="rectangle">
   <text x="592.3534999999999" y="809.3" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff" dy="4.55">📖 CWE Knowledge Base</text>
 </g>
 <g class="node" data-id="LLM" data-label="⚡ Qwen2.5-Coder
-AMD GPU · ROCm · 105 t/s (7B) / 29 t/s (32B)" data-shape="rectangle">
+AMD GPU · ROCm · 29 t/s (32B) · 105 t/s (7B)" data-shape="rectangle">
   <rect x="289.4577666666666" y="969.2499999999999" width="231.73679999999996" height="53.800000000000004" rx="0" ry="0" fill="#3d1f6d" stroke="#d2a8ff" stroke-width="2px" />
-  <text x="405.3261666666666" y="996.1499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff"><tspan x="405.3261666666666" dy="-3.9000000000000012">⚡ Qwen2.5-Coder</tspan><tspan x="405.3261666666666" dy="16.900000000000002">AMD GPU · ROCm · 105 t/s (7B) / 29 t/s (32B)</tspan></text>
+  <text x="405.3261666666666" y="996.1499999999999" text-anchor="middle" font-size="13" font-weight="500" fill="#ffffff"><tspan x="405.3261666666666" dy="-3.9000000000000012">⚡ Qwen2.5-Coder</tspan><tspan x="405.3261666666666" dy="16.900000000000002">AMD GPU · ROCm · 29 t/s (32B) · 105 t/s (7B)</tspan></text>
 </g>
 <g class="node" data-id="Output" data-label="📄 Output
 JSON · Markdown · SARIF · Terminal" data-shape="rectangle">
