@@ -49,7 +49,7 @@ with ThreadPoolExecutor(max_workers=4) as pool:
     static_risks = list(pool.map(static_analyzer.analyze, files))
 
 # Phase 2: Agent 2 runs all files in parallel (GPU-bound)
-with ThreadPoolExecutor(max_workers=2) as pool:  # 2 = GPU concurrency
+with ThreadPoolExecutor(max_workers=1) as pool:  # 1 = GPU concurrency (avoid VRAM contention)
     semantic_risks = list(pool.map(
         lambda f: semantic_analyzer.analyze(f, static_risks[f]),
         files
