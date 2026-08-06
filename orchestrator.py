@@ -62,7 +62,7 @@ VALID_TRANSITIONS = {
 class Orchestrator:
     """State machine orchestrator for the analysis pipeline."""
 
-    def __init__(self, llm_client: Optional[LLMClient] = None):
+    def __init__(self, llm_client: Optional[LLMClient] = None, custom_rules: Optional[list] = None):
         self.state = State.INIT
         self.static_analyzer = StaticAnalyzer(custom_rules=custom_rules or [])
         self.llm = llm_client
