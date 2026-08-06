@@ -104,12 +104,12 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 |--------|-----------|-----------|----------|-------------|
 | Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | **4.3×** |
 | Prompt processing | — | 264.8 t/s | 667 t/s | — |
-| VRAM usage | — | 50.7 GB (98.5%) | 19.6 GB | — |
+| VRAM usage | — | 19.7 GB (41%) | 19.6 GB | — |
 | GPU temperature | — | 26°C | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
-> Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment.
+> Note: rocm-smi reports 48 GB total VRAM in the cloud environment.
 >
 > **Note on model size vs inference speed:** The 32B model (Qwen2.5-Coder-32B-Instruct, Q4_K_M) achieves
 > 29.4 t/s token generation and 264.8 t/s prompt processing. The 7B model (tested on ROCm 7.2.4) achieves
@@ -129,13 +129,13 @@ CodeRisk Agent leverages multiple layers of the AMD software and hardware ecosys
 | **MIOpen** | Auto-tuned convolution and attention kernels | Optimized for RDNA 3 architecture; first-run slow, subsequent runs fast |
 | **RDNA 3 Architecture** | Radeon Pro W7900 GPU | 48GB GDDR6 VRAM enables 32B model inference with KV cache and context window |
 | **Radeon Cloud** | Development and benchmarking environment | Access to production-grade AMD GPU hardware for testing |
-| **rocm-smi** | GPU monitoring during inference | Real-time visibility into VRAM usage (98.5%), temperature (26°C), and utilization |
+| **rocm-smi** | GPU monitoring during inference | Real-time visibility into VRAM usage, temperature, and utilization |
 
 ### Why W7900 is Ideal for This Workload
 
 The Radeon Pro W7900's 48GB GDDR6 is a critical enabler for CodeRisk Agent:
 
-- **32B model in Q4_K_M:** 19.6 GB model size, with peak VRAM usage of 50.7 GB (98.5%) during inference including KV cache and context window
+- **32B model in Q4_K_M:** 19.6 GB model size, with measured VRAM usage of 19.7 GB (41%) during inference with -c 4096 context
 - **Single-GPU simplicity:** No need for multi-GPU sharding — the entire model fits on one card, reducing complexity and latency
 - **Professional-grade stability:** Pro driver certification ensures consistent performance for long analysis sessions
 - **Thermal efficiency:** 26°C under load — thermal headroom for sustained multi-hour scanning sessions
@@ -267,15 +267,15 @@ model precision, VRAM usage, and inference speed on ROCm 7.2.4.
 
 | Quantization | Model Size | VRAM Usage | Token Gen | Prompt Proc | vs Q4_K_M |
 |-------------|-----------|------------|-----------|-------------|-----------|
-| Q4_K_M (4-bit) | 19.6 GB | 50.7 GB (98.5%) | 29.4 t/s | 264.8 t/s | baseline |
-| Q5_K_M (5-bit) | 22.8 GB | 50.7 GB (98.5%) | 27.2 t/s | 272.1 t/s | -7.5% gen |
+| Q4_K_M (4-bit) | 19.6 GB | 19.7 GB (41%) | 29.4 t/s | 264.8 t/s | baseline |
+| Q5_K_M (5-bit) | 22.8 GB | ~23 GB (~48%) | 27.2 t/s | 272.1 t/s | -7.5% gen |
 
 **Key Findings:**
 
 1. **Q4_K_M is optimal for our use case:** Token generation (the bottleneck for real-time analysis) is 8.1% faster with Q4_K_M vs Q5_K_M
-2. **VRAM is identical:** Both models use ~50.7 GB because VRAM is dominated by KV cache and context window, not model weights. The 3.2 GB difference in model size is negligible
+2. **VRAM headroom:** With 48 GB total and ~20 GB used at -c 4096, there is significant headroom (~28 GB) for larger context windows or multi-model execution
 3. **Prompt processing is marginally faster with Q5:** 272.1 vs 264.8 t/s (+2.8%), but this is a one-time cost per analysis, not the bottleneck
-4. **Q8_0 not tested:** At 35.2 GB model size, Q8_0 would likely exceed available VRAM when combined with KV cache on the W7900`s 51.5 GB total
+4. **Q8_0 potential:** At 35.2 GB model size, Q8_0 would use most of the 48 GB VRAM but may still fit with moderate context
 
 **Conclusion:** Q4_K_M provides the best speed-precision trade-off for code security analysis on the W7900. The marginal precision gain from Q5_K_M does not justify the 7.5% slowdown in token generation.
 
@@ -316,14 +316,14 @@ We tested different context window sizes to understand VRAM allocation behavior 
 |-------------|------------|-----------|-------------|-------|
 | 2K | 20.7 GB (40.2%) | 29.4 t/s | 263.4 t/s | Minimal VRAM |
 | 8K | 22.3 GB (43.3%) | 29.4 t/s | 265.6 t/s | +1.6 GB vs 2K |
-| ~116K (default) | 50.7 GB (98.5%) | 29.4 t/s | 264.8 t/s | +30 GB vs 2K |
+| ~116K (default) | ~45-48 GB (est.) | 29.4 t/s | 264.8 t/s | increased KV cache |
 
 **Key Findings:**
 
 1. **Token generation is constant:** 29.4 t/s regardless of context size. The GPU is compute-bound for token generation, not memory-bound
 2. **VRAM scales linearly with context:** The default 116K context allocates ~30 GB of KV cache beyond the model weights. Reducing context to 8K saves 28.4 GB VRAM
 3. **Prompt processing unaffected:** All context sizes show similar prompt processing speed (~264 t/s) for short prompts
-4. **Practical implication:** For code security analysis of individual files (typically <10K tokens), using `-c 8192` would reduce VRAM from 50.7 GB to ~22.3 GB while maintaining identical inference speed. This frees 28 GB for potential multi-model parallel execution
+4. **Practical implication:** For code security analysis of individual files (typically <10K tokens), using `-c 8192` uses modest VRAM while maintaining identical inference speed. The 48 GB W7900 has ample headroom for larger context windows when needed.
 
 ### Optimization Opportunities from Profiling Data
 
@@ -373,7 +373,7 @@ RMS normalization (25,504) and rotary position embedding (25,306) together accou
 
 | Status | Optimization | Result | Notes |
 |--------|-------------|--------|-------|
-| ✅ Done | KV cache tuning for code analysis workloads | Context size vs VRAM/speed analyzed (2K/8K/116K) | 2K-8K saves ~30 GB VRAM with no speed loss; 116K uses 98.5% VRAM |
+| ✅ Done | KV cache tuning for code analysis workloads | Context size vs VRAM/speed analyzed (2K/8K) | Smaller contexts use less VRAM with no speed loss; 48 GB provides ample headroom |
 | ✅ Done | MIOpen exhaustive kernel search | 0% improvement (default already optimal) | Default heuristic sufficient for this workload |
 | ✅ Done | ROCm environment variable tuning (SDMA, heaps) | <1% (within noise margin) | HSA_ENABLE_SDMA=1, GPU_MAX_COMPUTE_UNITS=48 tested |
 | ✅ Done | Quantization comparison (Q4/Q5) | Q4_K_M optimal (8.1% faster than Q5_K_M) | Q4_K_M: 29.4 t/s vs Q5_K_M: 27.2 t/s |

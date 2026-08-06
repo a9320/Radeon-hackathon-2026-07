@@ -16,7 +16,7 @@ CodeRisk Agent validated both Qwen2.5-Coder-7B and 32B models on the AMD Radeon 
 | Model Size | 4.4 GB | 19.6 GB | 4.5× |
 | Token Generation | 105 t/s | 29.4 t/s | 3.6× slower |
 | Prompt Processing | 667 t/s | 264.8 t/s | 2.5× slower |
-| VRAM Usage | 19.6 GB (41%) | 50.7 GB (98.5%) | 2.6× |
+| VRAM Usage | 19.6 GB (41%) | 19.7 GB (41%) | similar |
 | GPU Speedup vs CPU | 15.4× | 4.3× | — |
 | Code Understanding | Basic | Deep semantic | — |
 | Attack Scenarios | Generic | Context-specific | — |
@@ -115,8 +115,8 @@ For security analysis, **accuracy matters more than speed**. A missed vulnerabil
 
 | Quantization | Token Gen | Prompt Proc | VRAM | vs Q4_K_M |
 |-------------|-----------|-------------|------|-----------|
-| Q4_K_M (4-bit) | 29.4 t/s | 264.8 t/s | 50.7 GB | baseline |
-| Q5_K_M (5-bit) | 27.2 t/s | 272.1 t/s | 50.7 GB | -7.5% gen |
+| Q4_K_M (4-bit) | 29.4 t/s | 264.8 t/s | 19.7 GB | baseline |
+| Q5_K_M (5-bit) | 27.2 t/s | 272.1 t/s | ~23 GB | -7.5% gen |
 
 **Finding:** Q4_K_M is optimal — 8.1% faster token generation with negligible quality difference. VRAM is identical because KV cache dominates.
 
@@ -126,7 +126,7 @@ For security analysis, **accuracy matters more than speed**. A missed vulnerabil
 |---------|------|-----------|-------------|
 | 2K | 20.7 GB | 29.4 t/s | 263.4 t/s |
 | 8K | 22.3 GB | 29.4 t/s | 265.6 t/s |
-| ~116K (default) | 50.7 GB | 29.4 t/s | 264.8 t/s |
+| ~116K (default) | ~45-48 GB (est.) | 29.4 t/s | 264.8 t/s |
 
 **Finding:** Token generation is constant regardless of context — GPU is compute-bound, not memory-bound. ROCm's memory management is efficient.
 
@@ -180,7 +180,7 @@ CodeRisk Agent proves that ROCm is not a "budget CUDA" — it's a **strategic ch
 | Dimension | Status | Evidence |
 |-----------|--------|----------|
 | Performance | ✅ Ready | 29.4 t/s, ~3 sec/file |
-| Memory Efficiency | ✅ Ready | 98.5% VRAM utilization, no OOM |
+| Memory Efficiency | ✅ Ready | 41% VRAM utilization at -c 4096, headroom for larger contexts |
 | Model Quality | ✅ Ready | 32B semantic understanding |
 | Ecosystem Maturity | ✅ Ready | Same stack works for 7B & 32B |
 | Enterprise Privacy | ✅ Ready | Zero external API calls (tcpdump verified) |

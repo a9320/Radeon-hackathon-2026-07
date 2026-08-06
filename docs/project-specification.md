@@ -213,7 +213,7 @@ cmake --build build --config Release -j$(nproc)
 | Token generation (32B) | 6.8 t/s | 29.4 t/s | **4.3×** |
 | Token generation (7B) | — | 105 t/s | 15.4× |
 | Prompt processing (32B) | — | 264.8 t/s | — |
-| VRAM usage (32B) | — | 50.7 GB (98.5%) | — |
+| VRAM usage (32B) | — | 19.7 GB (41%) | — |
 | VRAM usage (7B) | — | 19.6 GB | — |
 | GPU temperature | — | 26°C | — |
 
@@ -388,7 +388,7 @@ python main.py analyze tests/test_cases/ --output terminal
   -ngl 999 -fa 1 --host 0.0.0.0 --port 8080
 
 # Verify GPU is being used
-rocm-smi  # Should show ~50.7 GB VRAM usage (98.5%)
+rocm-smi  # Should show ~19.7 GB VRAM usage (41%)
 
 # Test inference speed
 curl http://localhost:8080/completion -d '{"prompt":"test","n_predict":100}'
@@ -422,7 +422,7 @@ tcpdump -r monitor.pcap -n
 | GPU token generation | ~29.4 t/s (32B) / ~105 t/s (7B) |
 | CPU token generation | ~6.8 t/s |
 | Speedup | ~4.3× (32B) / ~15.4× (7B) |
-| VRAM usage | ~50.7 GB (98.5%) |
+| VRAM usage | ~19.7 GB (41%) |
 | Network calls | 0 |
 
 ---

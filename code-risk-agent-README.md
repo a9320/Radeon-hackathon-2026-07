@@ -13,14 +13,14 @@
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 29.4 t/s (32B, 4.3× vs CPU) / 105 t/s (7B, comparison) |
 | Prompt Processing | 264.8 t/s |
-| VRAM Usage | 50.7 GB (98.5% of 51.5 GB reported by rocm-smi) |
+| VRAM Usage | 19.7 GB (41% of 48 GB, with -c 4096 context) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
 | Network Calls at Runtime | Zero (verified by tcpdump) |
 | Languages | C/C++, Python |
 | Team | Yang Weike (Solo Developer) |
 
-> **VRAM Note:** W7900 has 48 GB physical GDDR6. rocm-smi in the Radeon Cloud container reports 51.5 GB total (likely includes shared system memory via Resizable BAR). Actual measured usage: 50.7 GB with 32B model at ~116K context.
+> **VRAM Note:** W7900 has 48 GB physical GDDR6 (rocm-smi reports 51522830336 bytes ≈ 48 GB). Actual measured usage: 19.7 GB with 32B model at -c 4096 context (~41% utilization). Higher context windows increase VRAM usage due to KV cache.
 
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -247,8 +247,7 @@ CodeRisk Agent is optimized for AMD Radeon GPUs via ROCm/HIP.
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend).
-> Note: rocm-smi reports 51.5 GB total VRAM in the cloud environment
-> (may include shared system memory beyond the 48 GB physical GDDR6).
+> Note: rocm-smi reports 48 GB total VRAM in the cloud environment.
 >
 > **CPU Baseline:** Measured on the same Radeon Cloud container (CPU-only mode, no GPU offload). The CPU inference used llama.cpp's CPU backend with the same Q4_K_M GGUF model. This provides a fair same-environment comparison — the 4.3× speedup (32B) reflects the GPU's contribution, not a weak CPU baseline.
 >
@@ -297,7 +296,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 |-------------|----------|----------------|
 | **GGML_HIP=ON** | Required for 2026 ROCm builds | Without this: CPU fallback (6.8 t/s). With this: 29.4 t/s (32B) / 105 t/s (7B) |
 | **FlashAttention** | `-fa 1` flag | Confirmed active (25,178 kernel dispatches, 10.3%) |
-| **KV Cache** | `-c 4096` for stable long-context | Default context ~116K; `-c 4096` reduces VRAM from 50.7 GB to ~21 GB |
+| **KV Cache** | `-c 4096` for stable long-context | Default context ~116K would use more VRAM; `-c 4096` keeps usage at ~19.7 GB |
 | **Q4_K_M quantization** | 4-bit GGUF | 19.6 GB model size vs 64 GB full precision |
 | **MIOpen auto-tuning** | Enabled by default | First-run slow, subsequent runs fast |
 | **Concurrent agents** | Agent 1+2 parallel, Agent 3 sequential | Prevents VRAM contention between LLM inference |
@@ -312,7 +311,7 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | Token generation (32B) | 6.8 t/s | 29.4 t/s | **4.3×** |
 | Token generation (7B) | — | 105 t/s | 15.4× |
 | Prompt processing (32B) | — | 264.8 t/s | — |
-| VRAM usage | — | 50.7 GB / 51.5 GB (98.5%) | — |
+| VRAM usage | — | 19.7 GB / 48 GB (41%) | — |
 
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
 
