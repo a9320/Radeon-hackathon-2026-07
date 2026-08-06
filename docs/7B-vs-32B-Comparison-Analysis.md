@@ -1,7 +1,7 @@
 # 7B vs 32B Model Comparison & ROCm Optimization Evidence
 
 > CodeRisk Agent — AMD AI DevMaster Hackathon Track 2
-> Benchmark: AMD Radeon Pro W7900 (48GB GDDR6) · ROCm 7.2.4/7.8.0 · llama.cpp HIP backend
+> Benchmark: AMD Radeon Pro W7900 (48GB GDDR6) · ROCm 7.2.4 · llama.cpp HIP backend
 
 ---
 
@@ -216,4 +216,4 @@ The 7B/32B comparison is not just a performance table — it's evidence of:
 ---
 
 *"ROCm is our #1 strategic priority" — AMD Q2 2026 Earnings Call*
-*Benchmarked on AMD Radeon Pro W7900 (48GB GDDR6) · ROCm 7.2.4/7.8.0 · llama.cpp HIP backend · Qwen2.5-Coder-Instruct Q4_K_M*
+*Benchmarked on AMD Radeon Pro W7900 (48GB GDDR6) · ROCm 7.2.4 · llama.cpp HIP backend · Qwen2.5-Coder-Instruct Q4_K_M*

@@ -10,7 +10,7 @@
 | Material | Status | Location |
 |----------|--------|----------|
 | Source Code | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07 |
-| README (English) | ✅ Done | code-risk-agent-README.md |
+| README (English) | ✅ Done | README.md |
 | Project Spec Doc | ✅ Done | docs/project-specification.md |
 | Demo Video (3-5 min) | ✅ Done | https://github.com/a9320/Radeon-hackathon-2026-07/releases/download/v1.0/CodeRisk_Demo_4K.mp4 |
 | ROCm Optimization Doc | ✅ Done | docs/rocm-optimization.md |

@@ -105,7 +105,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 | Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | **4.3×** |
 | Prompt processing | — | 264.8 t/s | 667 t/s | — |
 | VRAM usage | — | 19.7 GB (41%) | 19.6 GB | — |
-| GPU temperature | — | 27°C (edge), 32°C (junction) | 26°C | — |
+| GPU temperature | — | 27°C (edge), 32°C (junction) | ~26°C (lower load) | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
@@ -377,8 +377,6 @@ RMS normalization (25,504) and rotary position embedding (25,306) together accou
 | ✅ Done | MIOpen exhaustive kernel search | 0% improvement (default already optimal) | Default heuristic sufficient for this workload |
 | ✅ Done | ROCm environment variable tuning (SDMA, heaps) | <1% (within noise margin) | HSA_ENABLE_SDMA=1, GPU_MAX_COMPUTE_UNITS=48 tested |
 | ✅ Done | Quantization comparison (Q4/Q5) | Q4_K_M optimal (8.1% faster than Q5_K_M) | Q4_K_M: 29.4 t/s vs Q5_K_M: 27.2 t/s |
-| P3 | Fused dequantization+matmul kernel | ~25% dispatch reduction | Very High — custom HIP kernel |
-| P3 | HIPBLASlt integration | Potentially faster GEMV | High — llama.cpp modification |
 
 ### Profiling Method
 
@@ -406,6 +404,8 @@ The following optimizations are identified for future implementation:
 | P2 | FlashAttention 2 integration | 10-15% speedup | High — custom kernel |
 | P2 | Custom HIP kernels for attention | 5-10% speedup | High — HIP development |
 | P3 | Custom HIP kernels for static analysis | Hardware-accelerated pattern matching | Very High |
+| P3 | Fused dequantization+matmul kernel | ~25% dispatch reduction | Very High — custom HIP kernel |
+| P3 | HIPBLASlt integration | Potentially faster GEMV | High — llama.cpp modification |
 | P3 | vLLM integration | PagedAttention for high-volume scanning | Medium |
 | P3 | Multi-GPU inference (tensor parallelism) | 2× throughput | Very High — architecture change |
 

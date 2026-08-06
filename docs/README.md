@@ -9,7 +9,7 @@
 ## Technical Analysis
 
 - [Architecture Review](architecture-review.md) — System architecture review based on E2E testing
-- [Module Analysis](module-analysis.md) — Module accuracy, feasibility, and optimization analysis
+- [7B vs 32B Comparison](7B-vs-32B-Comparison-Analysis.md) — Quantization & context window analysis
 
 ## Submission
 
