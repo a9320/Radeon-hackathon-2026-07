@@ -13,7 +13,7 @@
 | ROCm | 7.2.4 with HIP backend |
 | GPU Inference Speed | 29.4 t/s (32B, 4.3× vs CPU) / 105 t/s (7B, comparison) |
 | Prompt Processing | 264.8 t/s |
-| VRAM Usage | ~48 GB (rocm-smi reports 51.5 GB in cloud env, see note below) |
+| VRAM Usage | 50.7 GB (98.5% of 51.5 GB reported by rocm-smi) |
 | Detection Rules | 27 (C: 13, Python: 14) |
 | Unit Tests | 51 (all passing) |
 | Network Calls at Runtime | Zero (verified by tcpdump) |
