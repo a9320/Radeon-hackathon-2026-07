@@ -401,8 +401,12 @@ The following optimizations are identified for future implementation:
 
 | Priority | Optimization | Expected Benefit | Effort |
 |----------|-------------|-----------------|--------|
+| P2 | Continuous batching | 3-5× throughput for multi-file batch analysis | High |
+| P2 | Multi-model pipeline | 7B screening + 32B deep analysis (fits in 48GB GDDR6) | High |
 | P2 | FlashAttention 2 integration | 10-15% speedup | High — custom kernel |
 | P2 | Custom HIP kernels for attention | 5-10% speedup | High — HIP development |
+| P3 | Custom HIP kernels for static analysis | Hardware-accelerated pattern matching | Very High |
+| P3 | vLLM integration | PagedAttention for high-volume scanning | Medium |
 | P3 | Multi-GPU inference (tensor parallelism) | 2× throughput | Very High — architecture change |
 
 ### Remaining Benchmark Plan
