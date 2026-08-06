@@ -93,7 +93,7 @@ python3 main.py analyze tests/test_cases/ --output terminal
 
 > "Second: CWE knowledge base — are there known exploits?"
 
-**[Screen: Add NVD/CVE layer]**
+**[Screen: Add local CVE database layer]**
 
 > "Third: local CVE database query — real CVE numbers, real CVSS scores."
 

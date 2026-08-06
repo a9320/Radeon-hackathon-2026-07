@@ -1,6 +1,6 @@
 # CodeRisk Agent — Architecture Review & Improvements
 
-> Based on E2E test (2026-07-19): 5 files, 47-48 risks, 18 min
+> Based on E2E test (2026-07-19): 5 files, 47 risks, 18 min
 > Review date: 2026-07-20
 
 ---

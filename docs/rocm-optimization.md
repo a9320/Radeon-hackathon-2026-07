@@ -105,7 +105,7 @@ We evaluated both llama.cpp and vLLM for ROCm-based local inference. The decisio
 | Token generation | 6.8 t/s | 29.4 t/s | 105 t/s | **4.3×** |
 | Prompt processing | — | 264.8 t/s | 667 t/s | — |
 | VRAM usage | — | 19.7 GB (41%) | 19.6 GB | — |
-| GPU temperature | — | 26°C | 26°C | — |
+| GPU temperature | — | 27°C (edge), 32°C (junction) | 26°C | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (Radeon Pro W7900, 48GB GDDR6, ROCm 7.2.4, HIP backend, AMD EPYC 9334 32-Core, 503GB RAM).
@@ -138,7 +138,7 @@ The Radeon Pro W7900's 48GB GDDR6 is a critical enabler for CodeRisk Agent:
 - **32B model in Q4_K_M:** 19.6 GB model size, with measured VRAM usage of 19.7 GB (41%) during inference with -c 4096 context
 - **Single-GPU simplicity:** No need for multi-GPU sharding — the entire model fits on one card, reducing complexity and latency
 - **Professional-grade stability:** Pro driver certification ensures consistent performance for long analysis sessions
-- **Thermal efficiency:** 26°C under load — thermal headroom for sustained multi-hour scanning sessions
+- **Thermal efficiency:** 27°C edge temperature at idle — thermal headroom for sustained multi-hour scanning sessions
 
 ### ROCm-Specific Optimizations Applied
 

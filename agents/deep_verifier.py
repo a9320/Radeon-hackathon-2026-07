@@ -2,7 +2,7 @@
 
 Implements three verification strategies:
 1. Tool cross-validation (Semgrep + pattern matching confirmation)
-2. Knowledge base cross-validation (CWE/CVE lookup via NVD)
+2. Knowledge base cross-validation (CWE/CVE lookup via local SQLite database)
 3. Memory-based validation (recall known patterns, suppress false positives)
 
 Also implements the self-reflection loop: if Agent 2 missed something,

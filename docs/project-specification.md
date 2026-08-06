@@ -215,7 +215,7 @@ cmake --build build --config Release -j$(nproc)
 | Prompt processing (32B) | — | 264.8 t/s | — |
 | VRAM usage (32B) | — | 19.7 GB (41%) | — |
 | VRAM usage (7B) | — | 19.6 GB | — |
-| GPU temperature | — | 26°C | — |
+| GPU temperature | — | 27°C (edge) | — |
 
 > All performance data was measured on our Radeon Cloud instance
 > (Pro W7900, ROCm 7.2.4, HIP backend).
@@ -250,7 +250,7 @@ cmake --build build --config Release -j$(nproc)
 | Memory Layer | ✅ |17 patterns recalled |
 | CVE Client | ✅ | Local SQLite queries successful |
 
-**Total:**47-48 risks detected in 18 minutes (including GPU inference)
+**Total:** 47 risks detected in 18 minutes (including GPU inference)
 
 ### 6.3 CVE Validation
 
@@ -376,7 +376,7 @@ pytest  # 51 tests, all should pass
 
 # 7. Run analysis
 python main.py analyze tests/test_cases/ --output terminal
-# Expected: 47-48 risks detected in ~18 minutes
+# Expected: 47 risks detected in ~18 minutes
 ```
 
 ### Performance Verification
@@ -417,7 +417,7 @@ tcpdump -r monitor.pcap -n
 | Metric | Expected Value |
 |--------|---------------|
 | Unit tests | 51/51 passing |
-| E2E risks detected | 47-48 |
+| E2E risks detected | 47 |
 | E2E duration | ~18 minutes |
 | GPU token generation | ~29.4 t/s (32B) / ~105 t/s (7B) |
 | CPU token generation | ~6.8 t/s |
