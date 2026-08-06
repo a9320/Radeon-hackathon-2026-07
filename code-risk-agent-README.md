@@ -313,6 +313,8 @@ Expected output includes token generation speed, prompt processing speed, VRAM u
 | Prompt processing (32B) | — | 264.8 t/s | — |
 | VRAM usage | — | 19.7 GB / 48 GB (41%) | — |
 
+> CPU prompt processing was not measured separately — prompt processing is a one-time cost per analysis and is not the bottleneck for the code security workload.
+
 ![Token Generation Speed](docs/assets/token_speed_hd.png)
 
 ![Prompt Processing Speed](docs/assets/prompt_speed_hd.png)
