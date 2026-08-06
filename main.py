@@ -9,6 +9,7 @@ Options:
     --no-ai                    Disable LLM semantic analysis
     --semgrep-config <rules>   Semgrep rules (default: p/default)
     --output <format>          Output format: terminal|json|md|sarif|all (default: terminal)
+    --custom-rules <dir>       Load custom rules from JSON directory
 """
 
 from __future__ import annotations
@@ -55,6 +56,7 @@ def cmd_analyze(
     enable_ai: bool = True,
     semgrep_config: str = "p/default",
     output_format: str = "terminal",
+    custom_rules_dir: str | None = None,
 ) -> None:
     """Analyze code files or directory using the Orchestrator pipeline."""
     path = Path(path_str)
@@ -70,11 +72,32 @@ def cmd_analyze(
         )
         sys.exit(0)
 
+    # Load custom rules if specified
+    custom_rules = []
+    if custom_rules_dir:
+        custom_rules_path = Path(custom_rules_dir)
+        if custom_rules_path.is_dir():
+            for rule_file in custom_rules_path.glob("*.json"):
+                try:
+                    import json
+                    with open(rule_file) as rf:
+                        rule = json.load(rf)
+                        if isinstance(rule, dict):
+                            custom_rules.append(rule)
+                        elif isinstance(rule, list):
+                            custom_rules.extend(rule)
+                except Exception as e:
+                    console.print(f"[yellow]Failed to load custom rule {rule_file}: {e}[/]")
+            console.print(f"[cyan]Loaded {len(custom_rules)} custom rules from {custom_rules_dir}[/]")
+        else:
+            console.print(f"[yellow]Custom rules directory not found: {custom_rules_dir}[/]")
+
     # Build request
     request = AnalysisRequest(
         files=files,
         rules=[semgrep_config],
         enable_ai=enable_ai,
+        custom_rules=custom_rules,
     )
 
     # Initialize Orchestrator
@@ -88,7 +111,7 @@ def cmd_analyze(
         except Exception as e:
             console.print(f"[yellow]LLM init failed, running without AI: {e}[/]")
 
-    orchestrator = Orchestrator(llm_client=llm)
+    orchestrator = Orchestrator(llm_client=llm, custom_rules=request.custom_rules)
     orchestrator.run(request, output_format=output_format)
 
 
@@ -206,6 +229,11 @@ def main():
             idx = args.index("--semgrep-config")
             if idx + 1 < len(args):
                 semgrep_config = args[idx + 1]
+        custom_rules_dir = None
+        if "--custom-rules" in args:
+            idx = args.index("--custom-rules")
+            if idx + 1 < len(args):
+                custom_rules_dir = args[idx + 1]
         if "--output" in args:
             idx = args.index("--output")
             if idx + 1 < len(args):
@@ -215,6 +243,7 @@ def main():
             enable_ai=enable_ai,
             semgrep_config=semgrep_config,
             output_format=output_format,
+            custom_rules_dir=custom_rules_dir,
         )
     elif cmd == "demo":
         cmd_demo()

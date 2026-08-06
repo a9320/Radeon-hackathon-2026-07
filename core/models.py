@@ -69,6 +69,7 @@ class AnalysisRequest(BaseModel):
     rules: list[str] = Field(default_factory=lambda: ["p/default"])
     depth: int = Field(default=2, ge=1, le=5, description="Analysis depth, 1=shallow 5=deep")
     enable_ai: bool = True
+    custom_rules: list[dict] = Field(default_factory=list, description="Custom detection rules loaded from JSON files")
 
 
 # ─── Risk & Evidence ─────────────────────────────────────────────

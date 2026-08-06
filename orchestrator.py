@@ -64,7 +64,7 @@ class Orchestrator:
 
     def __init__(self, llm_client: Optional[LLMClient] = None):
         self.state = State.INIT
-        self.static_analyzer = StaticAnalyzer()
+        self.static_analyzer = StaticAnalyzer(custom_rules=custom_rules or [])
         self.llm = llm_client
         self.semantic_analyzer = SemanticAnalyzer(llm_client) if llm_client else None
         self.memory = MemoryLayer()

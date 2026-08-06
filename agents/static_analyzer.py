@@ -256,9 +256,10 @@ PYTHON_NEW_PATTERNS = [
 class StaticAnalyzer:
     """Tree-sitter Static Analyzer Agent."""
 
-    def __init__(self):
+    def __init__(self, custom_rules: list[dict] | None = None):
         self._risk_counter = 0
         self._counter_lock = threading.Lock()
+        self._custom_rules = custom_rules or []
 
     def analyze(self, code_file: CodeFile) -> list[Risk]:
         """Analyze a single file and return risk list."""
@@ -268,6 +269,49 @@ class StaticAnalyzer:
             risks.extend(self._analyze_c(code_file))
         elif code_file.language == Language.PYTHON:
             risks.extend(self._analyze_python(code_file))
+
+        # Apply custom rules
+        if self._custom_rules:
+            risks.extend(self._apply_custom_rules(code_file))
+
+        return risks
+
+    def _apply_custom_rules(self, code_file: CodeFile) -> list[Risk]:
+        """Apply user-provided custom detection rules."""
+        risks: list[Risk] = []
+        lines = code_file.content.split("
+")
+
+        lang_str = "C" if code_file.language == Language.C else "Python"
+
+        for rule in self._custom_rules:
+            rule_lang = rule.get("language", "all")
+            if rule_lang != "all" and rule_lang != lang_str:
+                continue
+
+            pattern = rule.get("pattern", "")
+            if not pattern:
+                continue
+
+            try:
+                regex = re.compile(pattern)
+            except re.error:
+                continue
+
+            for i, line in enumerate(lines, start=1):
+                if regex.search(line):
+                    risks.append(self._make_risk(
+                        title=rule.get("description", rule.get("id", "Custom rule")),
+                        description=rule.get("description", "Custom rule matched"),
+                        severity=Severity(rule.get("severity", "MEDIUM")),
+                        confidence=Confidence.MEDIUM,
+                        cwe_id=rule.get("cwe", "CWE-0"),
+                        file_path=str(code_file.path),
+                        line_start=i,
+                        line_end=i,
+                        snippet=line.strip(),
+                        fix_suggestion=rule.get("fix", ""),
+                    ))
 
         return risks
 
