@@ -509,8 +509,7 @@ system(buf);  // Sink: command execution
 **Developer:** Yang Weike (Solo participant)
 
 **Development Process:** The project was independently developed by Yang Weike.
-AI assistants (DeepSeek for technical consultation, Claude for architecture review)
-were used as development tools, similar to using IDE plugins or documentation generators.
+AI coding assistants were used as development tools, similar to using IDE plugins or documentation generators.
 All architectural decisions, code implementation, and testing were done by the developer.
 
 | Member | Role |
